@@ -314,34 +314,94 @@ def WaymoDataset(dataroot):
 
     return dataset
 
-def waymo_collate_fn(batch, GD, GS): # GS = max number of static roadgraph element (1400), GD = max number of dynamic roadgraph (16)
-    past_states_batch = np.array([]).reshape(-1,10,2)
-    past_states_mask_batch = np.array([]).reshape(-1,10)
-    current_states_batch = np.array([]).reshape(-1,1,2)
-    current_states_mask_batch = np.array([]).reshape(-1,1)
-    future_states_batch = np.array([]).reshape(-1,80,2)
-    future_states_mask_batch = np.array([]).reshape(-1,80)
-    roadgraph_xyz_batch = np.array([]).reshape(-1,3)
+def waymo_collate_fn(batch, GD=16, GS=1400): # GS = max number of static roadgraph element (1400), GD = max number of dynamic roadgraph (16)
+    past_states_batch = np.array([]).reshape(-1,10,9)
+    past_states_valid_batch = np.array([]).reshape(-1,10)
+    current_states_batch = np.array([]).reshape(-1,1,9)
+    current_states_valid_batch = np.array([]).reshape(-1,1)
+    future_states_batch = np.array([]).reshape(-1,80,9)
+    future_states_valid_batch = np.array([]).reshape(-1,80)
+    states_batch = np.array([]).reshape(-1,91,9)
+
+    roadgraph_feat_batch = np.array([]).reshape(-1,91,6)
+
+    traffic_light_feat_batch = np.array([]).reshape(-1,91,3)
+    traffic_light_valid_batch = np.array([]).reshape(-1,91)
+
+    num_agents = np.array([])
 
     for data in batch:
-        past_states = np.stack((data['state/past/x'],data['state/past/y']), axis=-1)
-        past_states_mask = data['state/past/valid'] > 0.
-        current_states = np.stack((data['state/current/x'],data['state/current/y']), axis=-1)
-        current_states_mask = data['state/current/valid'] > 0.
-        future_states = np.stack((data['state/future/x'],data['state/future/y']), axis=-1)
-        future_states_mask = data['state/future/valid'] > 0.
+        # State of Agents
+        past_states = np.stack((data['state/past/x'],data['state/past/y'],data['state/past/bbox_yaw'],
+                                    data['state/past/velocity_x'],data['state/past/velocity_y'],data['state/past/vel_yaw'],
+                                        data['state/past/width'],data['state/past/height'],data['state/past/timestamp_micros']), axis=-1)
+        past_states_valid = data['state/past/valid'] > 0.
+        current_states = np.stack((data['state/current/x'],data['state/current/y'],data['state/current/bbox_yaw'],
+                                    data['state/current/velocity_x'],data['state/current/velocity_y'],data['state/current/vel_yaw'],
+                                        data['state/current/width'],data['state/current/height'],data['state/current/timestamp_micros']), axis=-1)
+        current_states_valid = data['state/current/valid'] > 0.
+        future_states = np.stack((data['state/future/x'],data['state/future/y'],data['state/future/bbox_yaw'],
+                                    data['state/future/velocity_x'],data['state/future/velocity_y'],data['state/future/vel_yaw'],
+                                        data['state/future/width'],data['state/future/height'],data['state/future/timestamp_micros']), axis=-1)
+        future_states_valid = data['state/future/valid'] > 0.
 
-        roadgraph_xyz = data['roadgraph_samples/xyz']
+        states_feat = np.concatenate((past_states,current_states,future_states),axis=1)
+        states_valid = np.concatenate((past_states_valid,current_states_valid,future_states_valid),axis=1)
+        states_any_mask = np.sum(states_valid,axis=1) > 0
+        states_feat = states_feat[states_any_mask]
 
-        past_states_batch = np.concatenate((past_states_batch, past_states), axis=0)
-        past_states_mask_batch = np.concatenate((past_states_mask_batch, past_states_mask), axis=0)
-        current_states_batch = np.concatenate((current_states_batch, current_states), axis=0)
-        current_states_mask_batch = np.concatenate((current_states_mask_batch, current_states_mask), axis=0)
-        future_states_batch = np.concatenate((future_states_batch, future_states), axis=0)
-        future_states_mask_batch = np.concatenate((future_states_mask_batch, future_states_mask), axis=0)
-        roadgraph_xyz_batch = np.concatenate((roadgraph_xyz_batch, roadgraph_xyz), axis=0)
-
-        # future = np.stack(())
-
+        num_agents = np.append(num_agents, len(states_feat))
         
-    return 0
+        # Static Road Graph
+        roadgraph_feat = np.concatenate((data['roadgraph_samples/id'], data['roadgraph_samples/type'], 
+                                            data['roadgraph_samples/xyz'][:,:2], data['roadgraph_samples/dir'][:,:2]), axis=-1)
+        roadgraph_valid = data['roadgraph_samples/valid'] > 0.
+        valid_num = roadgraph_valid.sum()
+        if valid_num > GS:
+            roadgraph_feat = roadgraph_feat[roadgraph_valid[:,0]]
+            spacing = valid_num // GS
+            roadgraph_feat = roadgraph_feat[::spacing, :]
+            remove_num = len(roadgraph_feat) - GS
+            roadgraph_mask2 = np.full(len(roadgraph_feat), True)
+            idx_remove = np.random.choice(range(len(roadgraph_feat)), remove_num, replace=False)
+            roadgraph_mask2[idx_remove] = False
+            roadgraph_feat = roadgraph_feat[roadgraph_mask2]
+        else:
+            roadgraph_feat = roadgraph_feat[:GS,:]
+            # (Optional) : construct roadgraph valid
+
+        roadgraph_feat = np.repeat(roadgraph_feat[:,np.newaxis,:],91,axis=1)
+
+        # Dynamic Road Graph
+        traffic_light_states_past = np.stack((data['traffic_light_state/past/state'].T,data['traffic_light_state/past/x'].T,data['traffic_light_state/past/y'].T),axis=-1)
+        traffic_light_valid_past = data['traffic_light_state/past/valid'].T > 0.
+        traffic_light_states_current = np.stack((data['traffic_light_state/current/state'].T,data['traffic_light_state/current/x'].T,data['traffic_light_state/current/y'].T),axis=-1)
+        traffic_light_valid_current = data['traffic_light_state/current/valid'].T > 0.
+        traffic_light_states_future = np.stack((data['traffic_light_state/future/state'].T,data['traffic_light_state/future/x'].T,data['traffic_light_state/future/y'].T),axis=-1)
+        traffic_light_valid_future = data['traffic_light_state/future/valid'].T > 0.
+
+        traffic_light_feat = np.concatenate((traffic_light_states_past,traffic_light_states_current,traffic_light_states_future),axis=1)
+        traffic_light_valid = np.concatenate((traffic_light_valid_past,traffic_light_valid_current,traffic_light_valid_future),axis=1)
+
+        # Concat across batch
+        past_states_batch = np.concatenate((past_states_batch, past_states), axis=0)
+        past_states_valid_batch = np.concatenate((past_states_valid_batch, past_states_valid), axis=0)
+        current_states_batch = np.concatenate((current_states_batch, current_states), axis=0)
+        current_states_valid_batch = np.concatenate((current_states_valid_batch, current_states_valid), axis=0)
+        future_states_batch = np.concatenate((future_states_batch, future_states), axis=0)
+        future_states_valid_batch = np.concatenate((future_states_valid_batch, future_states_valid), axis=0)
+
+        states_batch = np.concatenate((states_batch,states_feat), axis=0)
+
+        roadgraph_feat_batch = np.concatenate((roadgraph_feat_batch, roadgraph_feat), axis=0)
+
+        traffic_light_feat_batch = np.concatenate((traffic_light_feat_batch, traffic_light_feat), axis=0)
+        traffic_light_valid_batch = np.concatenate((traffic_light_valid_batch, traffic_light_valid), axis=0)
+
+    num_agents_accum = np.cumsum(np.insert(num_agents,0,0)).astype(np.int64)
+    agents_batch_mask = np.zeros((num_agents_accum[-1],num_agents_accum[-1]))
+
+    for i in range(len(num_agents)):
+        agents_batch_mask[num_agents_accum[i]:num_agents_accum[i+1], num_agents_accum[i]:num_agents_accum[i+1]] = 1
+        
+    return (states_batch, agents_batch_mask, roadgraph_feat_batch, traffic_light_feat_batch)
