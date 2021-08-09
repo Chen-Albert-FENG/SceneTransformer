@@ -9,18 +9,18 @@ dataloader = DataLoader(dataset, batch_size=1, collate_fn=lambda x: waymo_collat
 
 data0 = next(iter(dataloader))
 
-device = torch.cuda.device(0)
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 print(device)
 
 state_feat, agent_batch_mask, road_feat, traffic_light_feat = data0
-# state_feat, agent_batch_mask, road_feat, traffic_light_feat = state_feat.to(device), \
-#                                                                     agent_batch_mask.to(device), \
-#                                                                         road_feat.to(device), \
-#                                                                             traffic_light_feat.to(device)
+state_feat, agent_batch_mask, road_feat, traffic_light_feat = state_feat.to(device), \
+                                                                    agent_batch_mask.to(device), \
+                                                                        road_feat.to(device), \
+                                                                            traffic_light_feat.to(device)
 
-encoder = Encoder(in_feat_dim=state_feat.shape[-1], in_dynamic_rg_dim=traffic_light_feat.shape[-1], in_static_rg_dim=road_feat.shape[-1])
-# encoder = encoder.to(device)
+encoder = Encoder(device, in_feat_dim=state_feat.shape[-1], in_dynamic_rg_dim=traffic_light_feat.shape[-1], in_static_rg_dim=road_feat.shape[-1])
+encoder = encoder.to(device)
 
 encodings = encoder(state_feat, agent_batch_mask, road_feat, traffic_light_feat)
 

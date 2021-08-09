@@ -6,10 +6,10 @@ from model.utils import *
 from collections import OrderedDict
 
 class Encoder(nn.Module):
-    def __init__(self, in_feat_dim, in_dynamic_rg_dim, in_static_rg_dim, time_steps=91, feature_dim=256, 
+    def __init__(self, device, in_feat_dim, in_dynamic_rg_dim, in_static_rg_dim, time_steps=91, feature_dim=256, 
     head_num=4, max_dynamic_rg=16, max_static_rg=1400, k=4): # what is k?
         super().__init__()
-
+        self.device = device
         self.time_steps = time_steps                # T
         self.feature_dim = feature_dim              # D
         self.head_num = head_num                    # H
@@ -29,24 +29,24 @@ class Encoder(nn.Module):
         self.layer_C = nn.Sequential(nn.Linear(in_static_rg_dim,feature_dim), nn.ReLU(), Permute4Batchnorm((0,2,1)),
                             nn.BatchNorm1d(feature_dim), Permute4Batchnorm((0,2,1)))
         # layer D,E,F,G,H,I : input -> [A,T,D] / outpu -> [A,T,D]
-        self.layer_D = SelfAttLayer(self.time_steps,self.feature_dim,self.head_num,self.k,across_time=True)
-        self.layer_E = SelfAttLayer(self.time_steps,self.feature_dim,self.head_num,self.k,across_time=False)
-        self.layer_F = SelfAttLayer(self.time_steps,self.feature_dim,self.head_num,self.k,across_time=True)
-        self.layer_G = SelfAttLayer(self.time_steps,self.feature_dim,self.head_num,self.k,across_time=False)
-        self.layer_H = SelfAttLayer(self.time_steps,self.feature_dim,self.head_num,self.k,across_time=True)
-        self.layer_I = SelfAttLayer(self.time_steps,self.feature_dim,self.head_num,self.k,across_time=False)
+        self.layer_D = SelfAttLayer(self.device, self.time_steps,self.feature_dim,self.head_num,self.k,across_time=True)
+        self.layer_E = SelfAttLayer(self.device, self.time_steps,self.feature_dim,self.head_num,self.k,across_time=False)
+        self.layer_F = SelfAttLayer(self.device, self.time_steps,self.feature_dim,self.head_num,self.k,across_time=True)
+        self.layer_G = SelfAttLayer(self.device, self.time_steps,self.feature_dim,self.head_num,self.k,across_time=False)
+        self.layer_H = SelfAttLayer(self.device, self.time_steps,self.feature_dim,self.head_num,self.k,across_time=True)
+        self.layer_I = SelfAttLayer(self.device, self.time_steps,self.feature_dim,self.head_num,self.k,across_time=False)
 
-        self.layer_J = CrossAttLayer(self.time_steps,self.feature_dim,self.head_num,self.k)
-        self.layer_K = CrossAttLayer(self.time_steps,self.feature_dim,self.head_num,self.k)
+        self.layer_J = CrossAttLayer(self.device, self.time_steps,self.feature_dim,self.head_num,self.k)
+        self.layer_K = CrossAttLayer(self.device, self.time_steps,self.feature_dim,self.head_num,self.k)
 
-        self.layer_L = SelfAttLayer(self.time_steps,self.feature_dim,self.head_num,self.k,across_time=True)
-        self.layer_M = SelfAttLayer(self.time_steps,self.feature_dim,self.head_num,self.k,across_time=False)
+        self.layer_L = SelfAttLayer(self.device, self.time_steps,self.feature_dim,self.head_num,self.k,across_time=True)
+        self.layer_M = SelfAttLayer(self.device, self.time_steps,self.feature_dim,self.head_num,self.k,across_time=False)
 
-        self.layer_N = CrossAttLayer(self.time_steps,self.feature_dim,self.head_num,self.k)
-        self.layer_O = CrossAttLayer(self.time_steps,self.feature_dim,self.head_num,self.k)
+        self.layer_N = CrossAttLayer(self.device, self.time_steps,self.feature_dim,self.head_num,self.k)
+        self.layer_O = CrossAttLayer(self.device, self.time_steps,self.feature_dim,self.head_num,self.k)
 
-        self.layer_P = SelfAttLayer(self.time_steps,self.feature_dim,self.head_num,self.k,across_time=True)
-        self.layer_Q = SelfAttLayer(self.time_steps,self.feature_dim,self.head_num,self.k,across_time=False)
+        self.layer_P = SelfAttLayer(self.device, self.time_steps,self.feature_dim,self.head_num,self.k,across_time=True)
+        self.layer_Q = SelfAttLayer(self.device, self.time_steps,self.feature_dim,self.head_num,self.k,across_time=False)
         
 
     def forward(self, state_feat, agent_batch_mask, road_feat, traffic_light_feat):
@@ -76,7 +76,7 @@ class Encoder(nn.Module):
         return Q_
 
 class SelfAttLayer(nn.Module):
-    def __init__(self, time_steps=91, feature_dim=256, head_num=4, k=4, across_time=True):
+    def __init__(self, device, time_steps=91, feature_dim=256, head_num=4, k=4, across_time=True):
         super().__init__()
 
         self.viewmodule_ = View((-1,time_steps,head_num, int(feature_dim/head_num)))
@@ -85,7 +85,7 @@ class SelfAttLayer(nn.Module):
         self.layer_Q0_ = nn.Sequential(nn.Linear(feature_dim,feature_dim), nn.ReLU(), self.viewmodule_)
         self.layer_Q_ = ScaleLayer(int(feature_dim/head_num))
 
-        self.scale = torch.sqrt(torch.FloatTensor([head_num]))
+        self.scale = torch.sqrt(torch.FloatTensor([head_num])).to(device)
 
         self.layer_Y2_ = nn.Sequential(View((-1,time_steps,feature_dim)), nn.Linear(feature_dim,feature_dim), nn.ReLU())
         self.layer_F1_ = nn.Sequential(nn.Linear(feature_dim,k*feature_dim), nn.ReLU())
@@ -99,6 +99,8 @@ class SelfAttLayer(nn.Module):
         V = self.layer_V_(x)
         Q0 = self.layer_Q0_(x)
         Q = self.layer_Q_(Q0)    # Q,K,V -> [A,T,H,d]
+        
+        self.scale = self.scale.to(K.device)
 
         if self.across_time:
             Q, K, V = Q.permute(0,2,1,3), K.permute(0,2,1,3), V.permute(0,2,1,3)    # Q,K,V -> [A,H,T,d]
@@ -128,7 +130,7 @@ class SelfAttLayer(nn.Module):
         return Z_, Q, K, V # -> [A,T,D], [A,T,H,d]*3
 
 class CrossAttLayer(nn.Module):
-    def __init__(self, time_steps=91, feature_dim=256, head_num=4, k=4):
+    def __init__(self, device, time_steps=91, feature_dim=256, head_num=4, k=4):
         super().__init__()
 
         self.viewmodule_ = View((-1,time_steps,head_num, int(feature_dim/head_num)))
@@ -137,7 +139,7 @@ class CrossAttLayer(nn.Module):
         self.layer_Q0_ = nn.Sequential(nn.Linear(feature_dim,feature_dim), nn.ReLU(), self.viewmodule_)
         self.layer_Q_ = ScaleLayer(int(feature_dim/head_num))
 
-        self.scale = torch.sqrt(torch.FloatTensor([head_num]))
+        self.scale = torch.sqrt(torch.FloatTensor([head_num])).to(device)
 
         self.layer_Y2_ = nn.Sequential(View((-1,time_steps,feature_dim)), nn.Linear(feature_dim,feature_dim), nn.ReLU())
         self.layer_F1_ = nn.Sequential(nn.Linear(feature_dim,k*feature_dim), nn.ReLU())
