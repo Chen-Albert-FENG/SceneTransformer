@@ -403,5 +403,10 @@ def waymo_collate_fn(batch, GD=16, GS=1400): # GS = max number of static roadgra
 
     for i in range(len(num_agents)):
         agents_batch_mask[num_agents_accum[i]:num_agents_accum[i+1], num_agents_accum[i]:num_agents_accum[i+1]] = 1
+
+    states_batch = torch.FloatTensor(states_batch)
+    agents_batch_mask = torch.BoolTensor(agents_batch_mask)
+    roadgraph_feat_batch = torch.FloatTensor(roadgraph_feat_batch)
+    traffic_light_feat_batch = torch.FloatTensor(traffic_light_feat_batch)
         
     return (states_batch, agents_batch_mask, roadgraph_feat_batch, traffic_light_feat_batch)
