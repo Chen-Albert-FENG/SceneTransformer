@@ -5,7 +5,7 @@ from model.encoder import Encoder
 from datautil.waymo_dataset import WaymoDataset, waymo_collate_fn
 
 dataset = WaymoDataset('data')
-dataloader = DataLoader(dataset, batch_size=1, collate_fn=lambda x: waymo_collate_fn(x))
+dataloader = DataLoader(dataset, batch_size=2, collate_fn=lambda x: waymo_collate_fn(x))
 
 data0 = next(iter(dataloader))
 
@@ -13,15 +13,36 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 print(device)
 
-state_feat, agent_batch_mask, road_feat, traffic_light_feat = data0
-state_feat, agent_batch_mask, road_feat, traffic_light_feat = state_feat.to(device), \
-                                                                    agent_batch_mask.to(device), \
-                                                                        road_feat.to(device), \
-                                                                            traffic_light_feat.to(device)
+states_batch, agents_batch_mask, states_padding_mask_batch, \
+                (states_hidden_mask_BP, states_hidden_mask_CBP, states_hidden_mask_GDP), \
+                    roadgraph_feat_batch, roadgraph_valid_batch, traffic_light_feat_batch, traffic_light_valid_batch, \
+                        agent_rg_mask, agent_traffic_mask = data0
 
-encoder = Encoder(device, in_feat_dim=state_feat.shape[-1], in_dynamic_rg_dim=traffic_light_feat.shape[-1], in_static_rg_dim=road_feat.shape[-1])
+states_batch, agents_batch_mask, states_padding_mask_batch, \
+                (states_hidden_mask_BP, states_hidden_mask_CBP, states_hidden_mask_GDP), \
+                    roadgraph_feat_batch, roadgraph_valid_batch, traffic_light_feat_batch, traffic_light_valid_batch, \
+                        agent_rg_mask, agent_traffic_mask = states_batch.to(device), agents_batch_mask.to(device), states_padding_mask_batch.to(device), \
+                                                                        (states_hidden_mask_BP.to(device), states_hidden_mask_CBP.to(device), states_hidden_mask_GDP.to(device)), \
+                                                                            roadgraph_feat_batch.to(device), roadgraph_valid_batch.to(device), traffic_light_feat_batch.to(device), traffic_light_valid_batch.to(device), \
+                                                                                agent_rg_mask.to(device), agent_traffic_mask.to(device)
+
+encoder = Encoder(device, in_feat_dim=states_batch.shape[-1], in_dynamic_rg_dim=traffic_light_feat_batch.shape[-1], in_static_rg_dim=roadgraph_feat_batch.shape[-1])
 encoder = encoder.to(device)
 
-encodings = encoder(state_feat, agent_batch_mask, road_feat, traffic_light_feat)
+# TODO : randomly select hidden mask
+states_hidden_mask_batch = states_hidden_mask_BP
+
+no_nonpad_mask = torch.sum((states_padding_mask_batch*states_hidden_mask_batch),dim=-1) != 0
+
+states_batch = states_batch[no_nonpad_mask]
+agents_batch_mask = agents_batch_mask[no_nonpad_mask][:,no_nonpad_mask]
+states_padding_mask_batch = states_padding_mask_batch[no_nonpad_mask]
+states_hidden_mask_batch = states_hidden_mask_batch[no_nonpad_mask]
+agent_rg_mask = agent_rg_mask[no_nonpad_mask]
+agent_traffic_mask = agent_traffic_mask[no_nonpad_mask]
+
+encodings = encoder(states_batch, agents_batch_mask, states_padding_mask_batch, states_hidden_mask_batch, 
+                        roadgraph_feat_batch, roadgraph_valid_batch, traffic_light_feat_batch, traffic_light_valid_batch,
+                            agent_rg_mask, agent_traffic_mask)
 
 print(encodings.shape)
