@@ -300,10 +300,10 @@ def transform_func(feature):
         feature[key] = func(feat)
     return feature
 
-def WaymoDataset(dataroot):
+def WaymoDataset(tfrecord_dir, idx_dir):
 
-    tfrecord_pattern = os.path.join(dataroot, 'tfrecords/{}')
-    index_pattern = os.path.join(dataroot, 'idxs/{}')
+    tfrecord_pattern = tfrecord_dir
+    index_pattern = idx_dir
 
     splits = {}
     fnlist = os.listdir(tfrecord_pattern.split('{}')[0])

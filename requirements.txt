@@ -1,2 +1,3 @@
+nvidia-dali
 tfrecord
 matplotlib

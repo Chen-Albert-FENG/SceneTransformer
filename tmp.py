@@ -5,7 +5,7 @@ from model.encoder import Encoder
 from model.decoder import Decoder
 from datautil.waymo_dataset import WaymoDataset, waymo_collate_fn
 
-dataset = WaymoDataset('./data')
+dataset = WaymoDataset('./data/tfrecords', './data/idxs')
 dataloader = DataLoader(dataset, batch_size=1, collate_fn=lambda x: waymo_collate_fn(x))
 
 data0 = next(iter(dataloader))
@@ -57,7 +57,7 @@ decoding = decoder(encodings, agents_batch_mask, states_padding_mask_batch,
 print(decoding.shape)
 
 to_predict_mask = states_padding_mask_batch*states_hidden_mask_batch
-gt = states_batch[:,:,:6][to_predict_mask] # x, y, bbox_yaw, velocity_x, velocity_y, vel_yaw
+gt = states_batch[:,:,:6][to_predict_mask] # 6 channel output : x, y, bbox_yaw, velocity_x, velocity_y, vel_yaw
 
 prediction = decoding.permute(1,2,0,3)[to_predict_mask]
 
