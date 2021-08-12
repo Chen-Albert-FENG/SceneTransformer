@@ -8,15 +8,15 @@ import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 
 import numpy as np
-from IPython.display import HTML
+# from IPython.display import HTML
 import itertools
 import torch
 from tfrecord.torch.dataset import TFRecordDataset, MultiTFRecordDataset
 
-from google.protobuf import text_format
-from waymo_open_dataset.metrics.ops import py_metrics_ops
-from waymo_open_dataset.metrics.python import config_util_py as config_util
-from waymo_open_dataset.protos import motion_metrics_pb2
+# from google.protobuf import text_format
+# from waymo_open_dataset.metrics.ops import py_metrics_ops
+# from waymo_open_dataset.metrics.python import config_util_py as config_util
+# from waymo_open_dataset.protos import motion_metrics_pb2
 
 # Example field definition
 roadgraph_features = {

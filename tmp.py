@@ -2,10 +2,11 @@ import torch
 from torch.utils.data import DataLoader
 
 from model.encoder import Encoder
+from model.decoder import Decoder
 from datautil.waymo_dataset import WaymoDataset, waymo_collate_fn
 
 dataset = WaymoDataset('data')
-dataloader = DataLoader(dataset, batch_size=2, collate_fn=lambda x: waymo_collate_fn(x))
+dataloader = DataLoader(dataset, batch_size=1, collate_fn=lambda x: waymo_collate_fn(x))
 
 data0 = next(iter(dataloader))
 
@@ -29,6 +30,9 @@ states_batch, agents_batch_mask, states_padding_mask_batch, \
 encoder = Encoder(device, in_feat_dim=states_batch.shape[-1], in_dynamic_rg_dim=traffic_light_feat_batch.shape[-1], in_static_rg_dim=roadgraph_feat_batch.shape[-1])
 encoder = encoder.to(device)
 
+decoder = Decoder(device)
+decoder = decoder.to(device)
+
 # TODO : randomly select hidden mask
 states_hidden_mask_batch = states_hidden_mask_BP
 
@@ -46,3 +50,8 @@ encodings = encoder(states_batch, agents_batch_mask, states_padding_mask_batch, 
                             agent_rg_mask, agent_traffic_mask)
 
 print(encodings.shape)
+
+decoding = decoder(encodings, agents_batch_mask, states_padding_mask_batch, 
+                        states_hidden_mask_batch)
+
+print(decoding.shape)
