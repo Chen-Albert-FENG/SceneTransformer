@@ -29,8 +29,8 @@ class Decoder(nn.Module):
 
         self.layer_Y = nn.LayerNorm(self.feature_dim)
 
-        self.layer_Z1 = nn.Sequential(nn.Linear(self.feature_dim,6), nn.ReLU(), Permute4Batchnorm((1,2,0,3)),
-                                        nn.BatchNorm2d(self.feature_dim), Permute4Batchnorm((2,0,1,3))) 
+        self.layer_Z1 = nn.Sequential(nn.Linear(self.feature_dim,6), nn.ReLU(), Permute4Batchnorm((1,3,0,2)),
+                            nn.BatchNorm2d(6), Permute4Batchnorm((2,0,3,1))) 
         self.layer_Z2 = nn.Sequential(nn.Linear(6,7), nn.ReLU())
 
     def forward(self, state_feat, batch_mask, padding_mask, hidden_mask):
