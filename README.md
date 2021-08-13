@@ -7,3 +7,7 @@
 ```python datautil/create_idx.py```
 ## 4. Predict model with SceneTransformer model (untrained)
 ```CUDA_VISIBLE_DEVICES=0 python tmp.py```
+
+
+# Rasterized Waymo Data
+## Follow waymo_rasterized_ex.ipynb
