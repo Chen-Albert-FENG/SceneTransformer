@@ -302,8 +302,8 @@ def transform_func(feature):
 
 def WaymoDataset(tfrecord_dir, idx_dir):
 
-    tfrecord_pattern = tfrecord_dir
-    index_pattern = idx_dir
+    tfrecord_pattern = tfrecord_dir+'/{}'
+    index_pattern = idx_dir+'/{}'
 
     splits = {}
     fnlist = os.listdir(tfrecord_pattern.split('{}')[0])
@@ -340,15 +340,15 @@ def waymo_collate_fn(batch, GD=16, GS=1400): # GS = max number of static roadgra
         # State of Agents
         past_states = np.stack((data['state/past/x'],data['state/past/y'],data['state/past/bbox_yaw'],
                                     data['state/past/velocity_x'],data['state/past/velocity_y'],data['state/past/vel_yaw'],
-                                        data['state/past/width'],data['state/past/height'],data['state/past/timestamp_micros']), axis=-1)
+                                        data['state/past/width'],data['state/past/length'],data['state/past/timestamp_micros']), axis=-1)
         past_states_valid = data['state/past/valid'] > 0.
         current_states = np.stack((data['state/current/x'],data['state/current/y'],data['state/current/bbox_yaw'],
                                     data['state/current/velocity_x'],data['state/current/velocity_y'],data['state/current/vel_yaw'],
-                                        data['state/current/width'],data['state/current/height'],data['state/current/timestamp_micros']), axis=-1)
+                                        data['state/current/width'],data['state/current/length'],data['state/current/timestamp_micros']), axis=-1)
         current_states_valid = data['state/current/valid'] > 0.
         future_states = np.stack((data['state/future/x'],data['state/future/y'],data['state/future/bbox_yaw'],
                                     data['state/future/velocity_x'],data['state/future/velocity_y'],data['state/future/vel_yaw'],
-                                        data['state/future/width'],data['state/future/height'],data['state/future/timestamp_micros']), axis=-1)
+                                        data['state/future/width'],data['state/future/length'],data['state/future/timestamp_micros']), axis=-1)
         future_states_valid = data['state/future/valid'] > 0.
 
         states_feat = np.concatenate((past_states,current_states,future_states),axis=1)
