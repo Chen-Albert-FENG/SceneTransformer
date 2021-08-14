@@ -61,6 +61,8 @@ gt = states_batch[:,:,:6][to_predict_mask] # 6 channel output : x, y, bbox_yaw, 
 
 prediction = decoding.permute(1,2,0,3)[to_predict_mask]
 
+print(prediction)
+
 def some_loss_function(*args):
     return 0
 

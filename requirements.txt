@@ -1,3 +1,4 @@
+nvidia-pyindex
 nvidia-dali
 tfrecord
 matplotlib
