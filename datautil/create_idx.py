@@ -3,9 +3,9 @@ import os.path
 import glob
 from tqdm import tqdm
 
-tfrecord_path = './data/scenario/validation'
-idx_path = './data/idxs_validation_bs_2'
-batch_size = 1
+tfrecord_path = './data/tf_example/validation'
+idx_path = './data/idxs_validation_bs_4'
+batch_size = 4
 
 for tfrecord in tqdm(glob.glob(tfrecord_path+'/*')):
     idxname = idx_path + '/' + tfrecord.split('/')[-1]
