@@ -2,3 +2,6 @@ nvidia-pyindex
 nvidia-dali
 tfrecord
 matplotlib
+tqdm
+pytorch-lightning
+hydra-core
