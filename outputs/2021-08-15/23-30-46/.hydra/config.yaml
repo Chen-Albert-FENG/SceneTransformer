@@ -1,14 +1,12 @@
 seed: 1234
-
 dataset:
   train:
-    tfrecords: '/data/scennario/training'
-    idxs: '/data/idxs_training_bs_2'
+    tfrecords: /data/scennario/training
+    idxs: /data/idxs_training_bs_2
   valid:
-    tfrecords: '/data/scenario/validation'
-    idxs: '/data/idxs_validation_bs_2'
+    tfrecords: /data/scenario/validation
+    idxs: /data/idxs_validation_bs_2
   batchsize: 2
-
 model:
   in_feature_dim: 9
   time_steps: 91
@@ -17,8 +15,5 @@ model:
   head_num: 4
   k: 4
   F: 6
-
 device: 2
 max_epochs: 200
-
-
