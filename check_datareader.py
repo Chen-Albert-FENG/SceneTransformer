@@ -1,6 +1,7 @@
 import os
 import sys
 import hydra
+from tqdm import tqdm
 
 import torch
 from torch.utils.data import DataLoader, dataloader
@@ -32,9 +33,11 @@ def main(cfg):
     dataset_valid = WaymoDataset(pwd+cfg.dataset.valid.tfrecords, pwd+cfg.dataset.valid.idxs)
     # dloader_train = DataLoader(dataset_train, batch_size=cfg.dataset.batchsize, collate_fn=waymo_collate_fn)
     dloader_valid = DataLoader(dataset_valid, batch_size=cfg.dataset.batchsize, collate_fn=waymo_collate_fn, shuffle=False)
-    
-    for data in dloader_valid:
+    #print(len(dataset_valid)) 
+    for data in tqdm(dloader_valid):
         pass
+
+    print('finished')
 
 if __name__ == '__main__':
     sys.exit(main())

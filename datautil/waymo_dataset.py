@@ -308,9 +308,9 @@ def WaymoDataset(tfrecord_dir, idx_dir):
     splits = {}
     fnlist = os.listdir(tfrecord_pattern.split('{}')[0])
     for fn in fnlist:
-        splits[fn] = 1.
+        splits[fn] = 1/len(fnlist)
 
-    dataset = MultiTFRecordDataset(tfrecord_pattern, index_pattern, splits, description=features_description, transform=transform_func)
+    dataset = MultiTFRecordDataset(tfrecord_pattern, index_pattern, splits, description=features_description, transform=transform_func,infinite=False)
 
     return dataset
 
