@@ -8,11 +8,11 @@ import pytorch_lightning as pl
 from model.encoder import Encoder
 from model.decoder import Decoder
 
-class SceneTransformer(pl.LightningDataModule):
+class SceneTransformer(pl.LightningModule):
     def __init__(self, device, in_feat_dim, in_dynamic_rg_dim, in_static_rg_dim, 
                     time_steps, feature_dim, head_num, k, F):
-        super().__init__()
-        self.device = device
+        super(SceneTransformer, self).__init__()
+        # self.device = device
         self.in_feat_dim = in_feat_dim
         self.in_dynamic_rg_dim = in_dynamic_rg_dim
         self.in_static_rg_dim = in_static_rg_dim
@@ -25,19 +25,17 @@ class SceneTransformer(pl.LightningDataModule):
         self.encoder = Encoder(self.device, self.in_feat_dim, self.in_dynamic_rg_dim, self.in_static_rg_dim,
                                     self.time_steps, self.feature_dim, self.head_num)
         self.decoder = Decoder(self.device, self.time_steps, self.feature_dim, self.head_num, self.k, self.F)
-        self.model = nn.Sequential(self.encoder, self.decoder)
+        # self.model = nn.Sequential(self.encoder, self.decoder)
         # self.model = self.model.to(self.device)
         
     def forward(self, states_batch, agents_batch_mask, states_padding_mask_batch, states_hidden_mask_batch,
                     roadgraph_feat_batch, roadgraph_valid_batch, traffic_light_feat_batch, traffic_light_valid_batch,
                         agent_rg_mask, agent_traffic_mask):
 
-        
-
-        decoding = self.model(states_batch, agents_batch_mask, states_padding_mask_batch, states_hidden_mask_batch,
+        encodings,_,_ = self.encoder(states_batch, agents_batch_mask, states_padding_mask_batch, states_hidden_mask_batch,
                                     roadgraph_feat_batch, roadgraph_valid_batch, traffic_light_feat_batch, traffic_light_valid_batch,
                                         agent_rg_mask, agent_traffic_mask)
-
+        decoding = self.decoder(encodings, agents_batch_mask, states_padding_mask_batch)
         
         return decoding.permute(1,2,0,3)
 
@@ -76,10 +74,10 @@ class SceneTransformer(pl.LightningDataModule):
         to_predict_mask = states_padding_mask_batch*states_hidden_mask_batch
         
         gt = states_batch[:,:,:6][to_predict_mask]
-        prediction = prediction[to_predict_mask]     
+        prediction = prediction[to_predict_mask]    
         
         Loss = nn.MSELoss(reduction='none')
-        loss_ = Loss(gt, prediction)
+        loss_ = Loss(gt.unsqueeze(1).repeat(1,6,1), prediction)
         loss_ = torch.min(torch.sum(torch.sum(loss_, dim=0),dim=-1))
 
         return loss_
@@ -121,11 +119,11 @@ class SceneTransformer(pl.LightningDataModule):
         prediction = prediction[to_predict_mask]     
         
         Loss = nn.MSELoss(reduction='none')
-        loss_ = Loss(gt, prediction)
+        loss_ = Loss(gt.unsqueeze(1).repeat(1,6,1), prediction)
         loss_ = torch.min(torch.sum(torch.sum(loss_, dim=0),dim=-1))
 
         self.log_dict({'val_loss': loss_})
 
-    def configure_optiizers(self):
+    def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters())
         return optimizer

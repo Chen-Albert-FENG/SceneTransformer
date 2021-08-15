@@ -33,11 +33,12 @@ class Decoder(nn.Module):
                             nn.BatchNorm2d(6), Permute4Batchnorm((2,0,3,1))) 
         self.layer_Z2 = nn.Linear(6,6)  # x, y, bbox_yaw, velocity_x, velocity_y, vel_yaw
 
-    def forward(self, state_feat, batch_mask, padding_mask, hidden_mask):
+    def forward(self, state_feat, batch_mask, padding_mask, hidden_mask=None):
         A,T,D = state_feat.shape
         assert (T==self.time_steps and D==self.feature_dim)
 
         onehots_ = self.onehots_.view(self.F,1,1,self.F).repeat(1,A,T,1)
+        onehots_ = onehots_.to(state_feat.device)
         x = state_feat.unsqueeze(0).repeat(self.F,1,1,1)
 
         x = torch.cat((x,onehots_),dim=-1)

@@ -117,7 +117,7 @@ class CrossAttLayer(nn.Module):
         Q = self.layer_Q_(Q0)                                                       # [A,T,H,d]
 
         Q, K, V = Q.permute(1,2,0,3), K.permute(1,2,0,3), V.permute(1,2,0,3)    # Q -> [T,H,A,d] / K,V -> [T,H,G,d]
-        energy = torch.matmul(Q,K.permute(0,1,3,2)) / self.scale                # [T,H,A,G]
+        energy = torch.matmul(Q,K.permute(0,1,3,2)) / Q.shape[1]               # [T,H,A,G]
 
         energy.permute(2,3,0,1)[agent_rg_mask==False] = -1e10
         energy.permute(2,0,1,3)[padding_mask==False] = -1e10
