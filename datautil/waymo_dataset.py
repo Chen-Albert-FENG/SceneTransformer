@@ -365,17 +365,18 @@ def waymo_collate_fn(batch, GD=16, GS=1400): # GS = max number of static roadgra
         states_feat = states_feat[states_any_mask]
 
         states_padding_mask = np.concatenate((past_states_valid[states_any_mask],current_states_valid[states_any_mask],future_states_valid[states_any_mask]), axis=1)
-        
+        states_padding_mask = states_padding_mask==False
+
         # basic_mask = np.zeros((len(states_feat),91)).astype(np.bool_)
         states_hidden_mask_BP = np.ones((len(states_feat),91)).astype(np.bool_)
         states_hidden_mask_BP[:,:12] = False
         sdvidx = np.where(data['state/is_sdc'][states_any_mask] == 1)[0][0]
-        states_hidden_mask_CBP = np.zeros((len(states_feat),91)).astype(np.bool_)
+        states_hidden_mask_CBP = np.ones((len(states_feat),91)).astype(np.bool_)
         states_hidden_mask_CBP[:,:12] = False
-        states_hidden_mask_CBP[sdvidx-1,:] = False
-        states_hidden_mask_GDP = np.zeros((len(states_feat),91)).astype(np.bool_)
+        states_hidden_mask_CBP[sdvidx,:] = False
+        states_hidden_mask_GDP = np.ones((len(states_feat),91)).astype(np.bool_)
         states_hidden_mask_GDP[:,:12] = False
-        states_hidden_mask_GDP[sdvidx-1,-1] = False
+        states_hidden_mask_GDP[sdvidx,-1] = False
         # states_hidden_mask_CDP = np.zeros((len(states_feat),91)).astype(np.bool_)
 
         num_agents = np.append(num_agents, len(states_feat))
@@ -438,14 +439,14 @@ def waymo_collate_fn(batch, GD=16, GS=1400): # GS = max number of static roadgra
         traffic_light_valid_batch = np.concatenate((traffic_light_valid_batch, traffic_light_valid), axis=0)
 
     num_agents_accum = np.cumsum(np.insert(num_agents,0,0)).astype(np.int64)
-    agents_batch_mask = np.zeros((num_agents_accum[-1],num_agents_accum[-1]))
-    agent_rg_mask = np.zeros((num_agents_accum[-1],len(num_agents)*GS))
-    agent_traffic_mask = np.zeros((num_agents_accum[-1],len(num_agents)*GD))
+    agents_batch_mask = np.ones((num_agents_accum[-1],num_agents_accum[-1])) # padding. 1 -> padded (ignore att) / 0 -> non-padded (do att)
+    agent_rg_mask = np.ones((num_agents_accum[-1],len(num_agents)*GS))
+    agent_traffic_mask = np.ones((num_agents_accum[-1],len(num_agents)*GD))
 
     for i in range(len(num_agents)):
-        agents_batch_mask[num_agents_accum[i]:num_agents_accum[i+1], num_agents_accum[i]:num_agents_accum[i+1]] = 1
-        agent_rg_mask[num_agents_accum[i]:num_agents_accum[i+1], GS*i:GS*(i+1)] = 1
-        agent_traffic_mask[num_agents_accum[i]:num_agents_accum[i+1], GD*i:GD*(i+1)] = 1
+        agents_batch_mask[num_agents_accum[i]:num_agents_accum[i+1], num_agents_accum[i]:num_agents_accum[i+1]] = 0
+        agent_rg_mask[num_agents_accum[i]:num_agents_accum[i+1], GS*i:GS*(i+1)] = 0
+        agent_traffic_mask[num_agents_accum[i]:num_agents_accum[i+1], GD*i:GD*(i+1)] = 0
 
     states_batch = torch.FloatTensor(states_batch)
     agents_batch_mask = torch.BoolTensor(agents_batch_mask)

@@ -19,6 +19,7 @@ class Encoder(nn.Module):
         self.head_dim = int(feature_dim/head_num)   # d
         self.k = k                                  # k
 
+        # TODO: replace custom multihead attention layer to nn.MultiHeadAttention
         # layer A : input -> [A,T,in_feat_dim] / output -> [A,T,D]
         self.layer_A = nn.Sequential(nn.Linear(in_feat_dim,feature_dim), nn.ReLU(), Permute4Batchnorm((0,2,1)),
                             nn.BatchNorm1d(feature_dim), Permute4Batchnorm((0,2,1)))
