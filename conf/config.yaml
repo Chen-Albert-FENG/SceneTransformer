@@ -2,7 +2,7 @@ seed: 1235
 
 dataset:
   train:
-    tfrecords: 'data/scenario/training'
+    tfrecords: 'data/tf_example/training'
     idxs: 'data/idxs_training_bs_4'
   valid:
     tfrecords: 'data/tf_example/validation'
