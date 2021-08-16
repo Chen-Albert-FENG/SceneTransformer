@@ -36,7 +36,7 @@ def main(cfg):
     model = SceneTransformer(None, cfg.model.in_feature_dim, cfg.model.in_dynamic_rg_dim, cfg.model.in_static_rg_dim,
                                 cfg.model.time_steps, cfg.model.feature_dim, cfg.model.head_num, cfg.model.k, cfg.model.F)
 
-    trainer = pl.Trainer(max_epochs=cfg.max_epochs, gpus=cfg.device_num)
+    trainer = pl.Trainer(max_epochs=cfg.max_epochs, gpus=cfg.device_num, gradient_clip_val=5)
     trainer.fit(model, dloader_train, dloader_valid)
 
 if __name__ == '__main__':
