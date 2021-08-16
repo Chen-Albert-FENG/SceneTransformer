@@ -3,11 +3,11 @@ seed: 1235
 dataset:
   train:
     tfrecords: 'data/tf_example/training'
-    idxs: 'data/idxs_training_bs_2'
+    idxs: 'data/idxs_training_bs_4'
   valid:
     tfrecords: 'data/tf_example/validation'
-    idxs: 'data/idxs_validation_bs_2'
-  batchsize: 2
+    idxs: 'data/idxs_validation_bs_4'
+  batchsize: 4
 
 # dataset:
 #   train:
