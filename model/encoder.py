@@ -7,7 +7,7 @@ from collections import OrderedDict
 
 class Encoder(nn.Module):
     def __init__(self, device, in_feat_dim, in_dynamic_rg_dim, in_static_rg_dim, time_steps=91, feature_dim=256, 
-    head_num=4, max_dynamic_rg=16, max_static_rg=1400, k=4): # what is k?
+    head_num=4, max_dynamic_rg=16, max_static_rg=1400, k=4): 
         super().__init__()
         self.device = device
         self.time_steps = time_steps                # T

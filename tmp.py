@@ -45,6 +45,11 @@ states_hidden_mask_batch = states_hidden_mask_batch[no_nonpad_mask]
 agent_rg_mask = agent_rg_mask[no_nonpad_mask]
 agent_traffic_mask = agent_traffic_mask[no_nonpad_mask]
 
+roadgraph_valid_mask = roadgraph_valid_batch.sum(dim=-1)!=91
+roadgraph_feat_batch = roadgraph_feat_batch[roadgraph_valid_mask]
+roadgraph_valid_batch = roadgraph_valid_batch[roadgraph_valid_mask]
+agent_rg_mask = agent_rg_mask[:,roadgraph_valid_mask]
+
 traffic_light_valid_mask = traffic_light_valid_batch.sum(dim=-1)!=91
 traffic_light_feat_batch = traffic_light_feat_batch[traffic_light_valid_mask]
 traffic_light_valid_batch = traffic_light_valid_batch[traffic_light_valid_mask]
