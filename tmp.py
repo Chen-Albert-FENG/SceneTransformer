@@ -51,21 +51,21 @@ encodings = encoder(states_batch, agents_batch_mask, states_padding_mask_batch, 
 
 print(encodings.shape)
 
-decoding = decoder(encodings, agents_batch_mask, states_padding_mask_batch, 
-                        states_hidden_mask_batch)
+# decoding = decoder(encodings, agents_batch_mask, states_padding_mask_batch, 
+#                         states_hidden_mask_batch)
 
-print(decoding.shape)
+# print(decoding.shape)
 
-to_predict_mask = states_padding_mask_batch*states_hidden_mask_batch
-gt = states_batch[:,:,:6][to_predict_mask] # 6 channel output : x, y, bbox_yaw, velocity_x, velocity_y, vel_yaw
+# to_predict_mask = states_padding_mask_batch*states_hidden_mask_batch
+# gt = states_batch[:,:,:6][to_predict_mask] # 6 channel output : x, y, bbox_yaw, velocity_x, velocity_y, vel_yaw
 
-prediction = decoding.permute(1,2,0,3)[to_predict_mask]
+# prediction = decoding.permute(1,2,0,3)[to_predict_mask]
 
-# print(prediction)
+# # print(prediction)
 
-def some_loss_function(*args):
-    return 0
+# def some_loss_function(*args):
+#     return 0
 
-loss = some_loss_function(gt, prediction)
+# loss = some_loss_function(gt, prediction)
 
-# TODO : training code
+# # TODO : training code

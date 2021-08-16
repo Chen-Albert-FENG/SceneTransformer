@@ -32,7 +32,7 @@ class SceneTransformer(pl.LightningModule):
                     roadgraph_feat_batch, roadgraph_valid_batch, traffic_light_feat_batch, traffic_light_valid_batch,
                         agent_rg_mask, agent_traffic_mask):
 
-        encodings,_,_ = self.encoder(states_batch, agents_batch_mask, states_padding_mask_batch, states_hidden_mask_batch,
+        encodings = self.encoder(states_batch, agents_batch_mask, states_padding_mask_batch, states_hidden_mask_batch,
                                     roadgraph_feat_batch, roadgraph_valid_batch, traffic_light_feat_batch, traffic_light_valid_batch,
                                         agent_rg_mask, agent_traffic_mask)
         decoding = self.decoder(encodings, agents_batch_mask, states_padding_mask_batch)
