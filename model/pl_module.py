@@ -103,6 +103,18 @@ class SceneTransformer(pl.LightningModule):
 
         return loss_
 
+    def on_after_backward(self) -> None:
+        valid_gradients = True
+        for name, param in self.named_parameters():
+            if param.grad is not None:
+                valid_gradients = not (torch.isnan(param.grad).any() or torch.isinf(param.grad).any())
+                if not valid_gradients:
+                    break
+
+        if not valid_gradients:
+            print(f'detected inf or nan values in gradients. not updating model parameters')
+            self.zero_grad()
+
     def validation_step(self, batch, batch_idx):
         states_batch, agents_batch_mask, states_padding_mask_batch, \
                 (states_hidden_mask_BP, states_hidden_mask_CBP, states_hidden_mask_GDP), \
