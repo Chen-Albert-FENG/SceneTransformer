@@ -57,7 +57,7 @@ class SceneTransformer(pl.LightningModule):
         # TODO : randomly select hidden mask
         states_hidden_mask_batch = states_hidden_mask_BP
         
-        no_nonpad_mask = torch.sum((states_padding_mask_batch*~states_hidden_mask_batch),dim=-1) != 0
+        no_nonpad_mask = torch.sum((~states_padding_mask_batch*~states_hidden_mask_batch),dim=-1) != 0
         states_batch = states_batch[no_nonpad_mask]
         agents_batch_mask = agents_batch_mask[no_nonpad_mask][:,no_nonpad_mask]
         states_padding_mask_batch = states_padding_mask_batch[no_nonpad_mask]
@@ -71,7 +71,7 @@ class SceneTransformer(pl.LightningModule):
                             agent_rg_mask, agent_traffic_mask)
 
         # Calculate Loss
-        to_predict_mask = states_padding_mask_batch*states_hidden_mask_batch
+        to_predict_mask = ~states_padding_mask_batch*states_hidden_mask_batch
         
         gt = states_batch[:,:,:6][to_predict_mask]
         prediction = prediction[to_predict_mask]    
@@ -99,7 +99,7 @@ class SceneTransformer(pl.LightningModule):
         # TODO : randomly select hidden mask
         states_hidden_mask_batch = states_hidden_mask_BP
         
-        no_nonpad_mask = torch.sum((states_padding_mask_batch*~states_hidden_mask_batch),dim=-1) != 0
+        no_nonpad_mask = torch.sum((~states_padding_mask_batch*~states_hidden_mask_batch),dim=-1) != 0
         states_batch = states_batch[no_nonpad_mask]
         agents_batch_mask = agents_batch_mask[no_nonpad_mask][:,no_nonpad_mask]
         states_padding_mask_batch = states_padding_mask_batch[no_nonpad_mask]
@@ -113,7 +113,7 @@ class SceneTransformer(pl.LightningModule):
                             agent_rg_mask, agent_traffic_mask)
 
         # Calculate Loss
-        to_predict_mask = states_padding_mask_batch*states_hidden_mask_batch
+        to_predict_mask = ~states_padding_mask_batch*states_hidden_mask_batch
         
         gt = states_batch[:,:,:6][to_predict_mask]
         prediction = prediction[to_predict_mask]     
