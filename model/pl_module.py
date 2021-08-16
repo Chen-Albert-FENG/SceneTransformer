@@ -3,6 +3,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 import torch.functional as FU
 
+import sys
 import pytorch_lightning as pl
 
 from model.encoder import Encoder
@@ -90,8 +91,12 @@ class SceneTransformer(pl.LightningModule):
         loss_ = Loss(gt.unsqueeze(1).repeat(1,6,1), prediction)
         loss_ = torch.min(torch.sum(torch.sum(loss_, dim=0),dim=-1))
 
-        # if loss_ == float('nan'):
-        #     print()
+        if loss_ == float('nan'):
+            print(agents_batch_mask, '\n')
+            print(states_padding_mask_batch, '\n')
+            print(agent_rg_mask, '\n')
+            print(agent_traffic_mask, '\n')
+            sys.exit()
 
         return loss_
 
