@@ -59,7 +59,7 @@ class Encoder(nn.Module):
         B_ = self.layer_B(traffic_light_feat)
         C_ = self.layer_C(road_feat)
         
-        output = self.layer_D(A_,agent_batch_mask,     padding_mask, hidden_mask)
+        output = self.layer_D(A_,    agent_batch_mask, padding_mask, hidden_mask)
         output = self.layer_E(output,agent_batch_mask, padding_mask, hidden_mask)
         output = self.layer_F(output,agent_batch_mask, padding_mask, hidden_mask)
         output = self.layer_G(output,agent_batch_mask, padding_mask, hidden_mask)

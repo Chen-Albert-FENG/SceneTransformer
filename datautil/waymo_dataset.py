@@ -405,6 +405,7 @@ def waymo_collate_fn(batch, GD=16, GS=1400): # GS = max number of static roadgra
 
         roadgraph_feat = np.repeat(roadgraph_feat[:,np.newaxis,:],91,axis=1)
         roadgraph_valid = np.repeat(roadgraph_valid,91,axis=1)
+        roadgraph_valid = ~roadgraph_valid
 
         # Dynamic Road Graph
         traffic_light_states_past = np.stack((data['traffic_light_state/past/state'].T,data['traffic_light_state/past/x'].T,data['traffic_light_state/past/y'].T),axis=-1)
@@ -416,6 +417,7 @@ def waymo_collate_fn(batch, GD=16, GS=1400): # GS = max number of static roadgra
 
         traffic_light_feat = np.concatenate((traffic_light_states_past,traffic_light_states_current,traffic_light_states_future),axis=1)
         traffic_light_valid = np.concatenate((traffic_light_valid_past,traffic_light_valid_current,traffic_light_valid_future),axis=1)
+        traffic_light_valid = ~traffic_light_valid
 
         # Concat across batch
         past_states_batch = np.concatenate((past_states_batch, past_states), axis=0)

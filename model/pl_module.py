@@ -63,7 +63,12 @@ class SceneTransformer(pl.LightningModule):
         states_padding_mask_batch = states_padding_mask_batch[no_nonpad_mask]
         states_hidden_mask_batch = states_hidden_mask_batch[no_nonpad_mask]
         agent_rg_mask = agent_rg_mask[no_nonpad_mask]
-        agent_traffic_mask = agent_traffic_mask[no_nonpad_mask]                                                                    
+        agent_traffic_mask = agent_traffic_mask[no_nonpad_mask]  
+
+        traffic_light_valid_mask = traffic_light_valid_batch.sum(dim=-1) != self.time_steps
+        traffic_light_feat_batch = traffic_light_feat_batch[traffic_light_valid_mask]
+        traffic_light_valid_batch = traffic_light_valid_batch[traffic_light_valid_mask]
+        agent_traffic_mask = agent_traffic_mask[:,traffic_light_valid_mask]                                                                  
         
         # Predict
         prediction = self(states_batch, agents_batch_mask, states_padding_mask_batch, states_hidden_mask_batch, 
@@ -105,7 +110,12 @@ class SceneTransformer(pl.LightningModule):
         states_padding_mask_batch = states_padding_mask_batch[no_nonpad_mask]
         states_hidden_mask_batch = states_hidden_mask_batch[no_nonpad_mask]
         agent_rg_mask = agent_rg_mask[no_nonpad_mask]
-        agent_traffic_mask = agent_traffic_mask[no_nonpad_mask]                                                                    
+        agent_traffic_mask = agent_traffic_mask[no_nonpad_mask]      
+
+        traffic_light_valid_mask = traffic_light_valid_batch.sum(dim=-1) != self.time_steps
+        traffic_light_feat_batch = traffic_light_feat_batch[traffic_light_valid_mask]
+        traffic_light_valid_batch = traffic_light_valid_batch[traffic_light_valid_mask]
+        agent_traffic_mask = agent_traffic_mask[:,traffic_light_valid_mask]                                                                 
         
         # Predict
         prediction = self(states_batch, agents_batch_mask, states_padding_mask_batch, states_hidden_mask_batch, 
