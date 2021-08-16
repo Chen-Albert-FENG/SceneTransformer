@@ -2,12 +2,12 @@ seed: 1235
 
 dataset:
   train:
-    tfrecords: 'data/scenario/training'
-    idxs: 'data/idxs_training_bs_4'
+    tfrecords: 'data/tf_example/training'
+    idxs: 'data/idxs_training_bs_1'
   valid:
     tfrecords: 'data/tf_example/validation'
-    idxs: 'data/idxs_validation_bs_4'
-  batchsize: 4
+    idxs: 'data/idxs_validation_bs_1'
+  batchsize: 1
 
 # dataset:
 #   train:
