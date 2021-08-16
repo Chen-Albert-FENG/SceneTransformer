@@ -310,9 +310,17 @@ def WaymoDataset(tfrecord_dir, idx_dir):
     for fn in fnlist:
         splits[fn] = 1/len(fnlist)
 
-    dataset = MultiTFRecordDataset(tfrecord_pattern, index_pattern, splits, description=features_description, transform=transform_func,infinite=False)
+    dataset = MultiTFRecordDataset(tfrecord_pattern, index_pattern, splits, description=features_description, transform=transform_func, infinite=False)
 
     return dataset
+
+# TODO : edit waymo dataset reading sequenial manner
+# def WaymoSeqDataset(tfrecord_dir, idx_dir):
+#     tfrecord_pattern = tfrecord_dir+'/{}'
+#     index_pattern = idx_dir+'/{}'
+
+#     splits = {}
+#     fnlist = os.listdir(tfrecord_pattern.split('{}')[0])
 
 def waymo_collate_fn(batch, GD=16, GS=1400): # GS = max number of static roadgraph element (1400), GD = max number of dynamic roadgraph (16)
     past_states_batch = np.array([]).reshape(-1,10,9)
