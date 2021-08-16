@@ -59,6 +59,8 @@ class SceneTransformer(pl.LightningModule):
         states_hidden_mask_batch = states_hidden_mask_BP
         
         no_nonpad_mask = torch.sum((~states_padding_mask_batch*~states_hidden_mask_batch),dim=-1) != 0
+        no_nonpad_mask *= (states_padding_mask_batch.sum(dim=-1) < 85)
+        
         states_batch = states_batch[no_nonpad_mask]
         agents_batch_mask = agents_batch_mask[no_nonpad_mask][:,no_nonpad_mask]
         states_padding_mask_batch = states_padding_mask_batch[no_nonpad_mask]
@@ -86,17 +88,18 @@ class SceneTransformer(pl.LightningModule):
         
         gt = states_batch[:,:,:6][to_predict_mask]
         prediction = prediction[to_predict_mask]    
-        
+        #print(prediction) 
         Loss = nn.MSELoss(reduction='none')
         loss_ = Loss(gt.unsqueeze(1).repeat(1,6,1), prediction)
         loss_ = torch.min(torch.sum(torch.sum(loss_, dim=0),dim=-1))
-
-        if loss_ == float('nan'):
-            print(agents_batch_mask, '\n')
-            print(states_padding_mask_batch, '\n')
-            print(agent_rg_mask, '\n')
-            print(agent_traffic_mask, '\n')
-            sys.exit()
+        #print(states_padding_mask_batch.sum(dim=-1))
+        if torch.isnan(loss_):
+        #    print(agents_batch_mask.sum(dim=-1), '\n')
+        #    print(states_padding_mask_batch.sum(dim=-1), '\n')
+        #    print(agent_rg_mask.sum(dim=-1), '\n')
+        #    print(agent_traffic_mask.sum(dim=-1), '\n')
+            #sys.exit()
+            loss_ = torch.zeros(1).to(gt.device)
 
         return loss_
 
@@ -118,6 +121,8 @@ class SceneTransformer(pl.LightningModule):
         states_hidden_mask_batch = states_hidden_mask_BP
         
         no_nonpad_mask = torch.sum((~states_padding_mask_batch*~states_hidden_mask_batch),dim=-1) != 0
+        no_nonpad_mask *= (states_padding_mask_batch.sum(dim=-1) < 85)
+        
         states_batch = states_batch[no_nonpad_mask]
         agents_batch_mask = agents_batch_mask[no_nonpad_mask][:,no_nonpad_mask]
         states_padding_mask_batch = states_padding_mask_batch[no_nonpad_mask]
