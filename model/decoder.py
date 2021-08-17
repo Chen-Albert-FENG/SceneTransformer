@@ -39,10 +39,10 @@ class Decoder(nn.Module):
 
         onehots_ = self.onehots_.repeat(1,A,T,1)
         onehots_ = onehots_.to(state_feat.device)
-        x = state_feat.unsqueeze(0).repeat(self.F,1,1,1)
+        x = state_feat.unsqueeze(0).repeat(self.F,1,1,1)    # [F,A,T,D]
 
-        x = torch.cat((x,onehots_),dim=-1)
-        x = self.layer_T(x)
+        x = torch.cat((x,onehots_),dim=-1)                  # [F,A,T,D+F]
+        x = self.layer_T(x)                                 # [F,A,T,D]
 
         x = self.layer_U(x,batch_mask=batch_mask, padding_mask=padding_mask)
         x = self.layer_V(x,batch_mask=batch_mask, padding_mask=padding_mask)
@@ -52,6 +52,6 @@ class Decoder(nn.Module):
 
         x = self.layer_Y(x)
         x = self.layer_Z1(x)
-        x = self.layer_Z2(x)
-
+        x = self.layer_Z2(x)                                # [F,A,T,D]
+        
         return x

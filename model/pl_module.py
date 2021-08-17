@@ -93,13 +93,13 @@ class SceneTransformer(pl.LightningModule):
         loss_ = Loss(gt.unsqueeze(1).repeat(1,6,1), prediction)
         loss_ = torch.min(torch.sum(torch.sum(loss_, dim=0),dim=-1))
         #print(states_padding_mask_batch.sum(dim=-1))
-        if torch.isnan(loss_):
+        #if torch.isnan(loss_):
         #    print(agents_batch_mask.sum(dim=-1), '\n')
         #    print(states_padding_mask_batch.sum(dim=-1), '\n')
         #    print(agent_rg_mask.sum(dim=-1), '\n')
         #    print(agent_traffic_mask.sum(dim=-1), '\n')
             #sys.exit()
-            loss_ = torch.zeros(1).to(gt.device)
+         #   loss_ = torch.zeros(1).to(gt.device)
 
         return loss_
 

@@ -163,7 +163,7 @@ class SelfAttLayer_Enc(nn.Module):
 
         if self.across_time:
             q = x_.permute(1,0,2)                       # [L,N,E] : [A,T,D]->[T,A,D]
-            k,v = q.clone(),q.clone()                   # [S,N,E] : [T,A,D]
+            k,v = q, q                   # [S,N,E] : [T,A,D]
 
             key_padding_mask = padding_mask             # [N,S] : [A,T]
             attn_mask = None  
@@ -173,7 +173,7 @@ class SelfAttLayer_Enc(nn.Module):
             att_output = att_output.permute(1,0,2)
         else:
             q = x_                                      # [L,N,E] = [A,T,D]
-            k, v = q.clone(), q.clone()                 # [S,N,E] = [A,T,D]
+            k, v = q, q                 # [S,N,E] = [A,T,D]
 
             key_padding_mask = padding_mask.permute(1,0)# [N,S] = [T,A]
             attn_mask = batch_mask                      # [L,S] = [A,A]
@@ -215,7 +215,7 @@ class SelfAttLayer_Dec(nn.Module):
 
         if self.across_time:
             q = x_.reshape((-1,T,D)).permute(1,0,2)                     # [L,N,E] : [F,A,T,D]->[F*A,T,D]->[T,F*A,D]
-            k,v = q.clone(),q.clone()                                   # [S,N,E] : [T,F*A,D]
+            k,v = q, q                                   # [S,N,E] : [T,F*A,D]
 
             key_padding_mask = padding_mask.repeat(F,1)                 # [N,S] : [A*F,T]
             attn_mask = None  
@@ -225,7 +225,7 @@ class SelfAttLayer_Dec(nn.Module):
             att_output = att_output.reshape((T,F,A,D)).permute(1,2,0,3)
         else:
             q = x_.permute(0,2,1,3).reshape((-1,A,D)).permute(1,0,2)    # [L,N,E] : [F,A,T,D]->[F,T,A,D]->[F*T,A,D]->[A,T*F,D]
-            k, v = q.clone(), q.clone()                                 # [S,N,E] : [A,T*F,D]
+            k, v = q, q                                 # [S,N,E] : [A,T*F,D]
 
             key_padding_mask = padding_mask.permute(1,0).repeat(F,1)    # [N,S] = [T*F,A]
             attn_mask = batch_mask                                      # [L,S] = [A,A]
@@ -252,7 +252,7 @@ class CrossAttLayer_Enc(nn.Module):
         self.k = k
 
         self.layer_X_ = nn.LayerNorm(feature_dim)
-        self.layer_att_ = nn.MultiheadAttention(embed_dim=feature_dim,num_heads=head_num)
+        self.layer_att_ = nn.MultiheadAttention(embed_dim=feature_dim,num_heads=head_num, add_zero_attn=True)
         self.layer_F1_ = nn.Sequential(nn.Linear(feature_dim,k*feature_dim), nn.ReLU())
         self.layer_F2_ = nn.Sequential(nn.Linear(k*feature_dim,feature_dim), nn.ReLU())
         self.layer_Z_ = nn.LayerNorm(feature_dim)
@@ -268,10 +268,9 @@ class CrossAttLayer_Enc(nn.Module):
         padding_mask = padding_mask.permute(1,0)            # [N,S] : T,G
         assert (G==G__ and T==T__)
 
-        k, v = kv.clone(), kv.clone()
+        k, v = kv, kv
         # att_output : [L,N,E] : [A,T,D]
         att_output,_ = self.layer_att_(q,k,v,key_padding_mask=padding_mask,attn_mask=batch_mask)
-
         S_ = att_output + q
         F1_ = self.layer_F1_(S_)
         F2_ = self.layer_F2_(F1_)
