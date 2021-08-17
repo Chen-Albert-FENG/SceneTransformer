@@ -2,3 +2,4 @@ data/*
 tmp*
 outputs/*
 *.pyc
+*.swp
