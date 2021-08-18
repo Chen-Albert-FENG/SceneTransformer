@@ -48,7 +48,6 @@ class SceneTransformer(pl.LightningModule):
         states_hidden_mask_batch = states_hidden_mask_BP
         
         no_nonpad_mask = torch.sum((~states_padding_mask_batch*~states_hidden_mask_batch),dim=-1) != 0
-        no_nonpad_mask *= (states_padding_mask_batch.sum(dim=-1) < 85)
         no_nonpad_mask *= ~states_padding_mask_batch[:,10]
 
         states_batch = states_batch[no_nonpad_mask]
@@ -56,9 +55,7 @@ class SceneTransformer(pl.LightningModule):
         states_padding_mask_batch = states_padding_mask_batch[no_nonpad_mask]
         states_hidden_mask_batch = states_hidden_mask_batch[no_nonpad_mask]
         agent_rg_mask = agent_rg_mask[no_nonpad_mask]
-        agent_traffic_mask = agent_traffic_mask[no_nonpad_mask]       
-        
-        current_xy = states_batch[:,10,:2]                                                          
+        agent_traffic_mask = agent_traffic_mask[no_nonpad_mask]                               
         
         # Predict
         prediction = self(states_batch, agents_batch_mask, states_padding_mask_batch, states_hidden_mask_batch, 
@@ -67,16 +64,14 @@ class SceneTransformer(pl.LightningModule):
 
         # Calculate Loss
         to_predict_mask = ~states_padding_mask_batch*states_hidden_mask_batch
-        gt = states_batch[:,:,:2] - current_xy[:,None,:].repeat(1,91,1)
-        gt = gt[to_predict_mask]/100.
+        gt = states_batch[:,:,:2]
+        gt = gt[to_predict_mask]
         prediction = prediction[to_predict_mask]    
         #print(prediction) 
         Loss = nn.MSELoss(reduction='none')
         loss_ = Loss(gt.unsqueeze(1).repeat(1,6,1), prediction)
         loss_ = torch.min(torch.mean(torch.mean(loss_, dim=0),dim=-1))
-        if self.current_epoch > 0 and (loss_ > .1 or loss_ < 0.01):
-            import ipdb
-            ipdb.set_trace()
+
         self.log_dict({'train_loss':loss_})
         return loss_
 
@@ -103,7 +98,6 @@ class SceneTransformer(pl.LightningModule):
         states_hidden_mask_batch = states_hidden_mask_BP
         
         no_nonpad_mask = torch.sum((~states_padding_mask_batch*~states_hidden_mask_batch),dim=-1) != 0
-        no_nonpad_mask *= (states_padding_mask_batch.sum(dim=-1) < 85)
         no_nonpad_mask *= ~states_padding_mask_batch[:,10]
 
         states_batch = states_batch[no_nonpad_mask]
@@ -112,8 +106,6 @@ class SceneTransformer(pl.LightningModule):
         states_hidden_mask_batch = states_hidden_mask_batch[no_nonpad_mask]
         agent_rg_mask = agent_rg_mask[no_nonpad_mask]
         agent_traffic_mask = agent_traffic_mask[no_nonpad_mask]    
-
-        current_xy = states_batch[:,10,:2]                                                                   
         
         # Predict
         prediction = self(states_batch, agents_batch_mask, states_padding_mask_batch, states_hidden_mask_batch, 
@@ -123,8 +115,8 @@ class SceneTransformer(pl.LightningModule):
         # Calculate Loss
         to_predict_mask = ~states_padding_mask_batch*states_hidden_mask_batch
         
-        gt = states_batch[:,:,:2] - current_xy[:,None,:].repeat(1,91,1)
-        gt = gt[to_predict_mask]/100.
+        gt = states_batch[:,:,:2]
+        gt = gt[to_predict_mask]
         prediction = prediction[to_predict_mask]     
         
         Loss = nn.MSELoss(reduction='none')

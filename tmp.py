@@ -4,9 +4,10 @@ from torch.utils.data import DataLoader
 from model.encoder import Encoder
 from model.decoder import Decoder
 from datautil.waymo_dataset import WaymoDataset, waymo_collate_fn
+from datautil.waymo_local_dataset import waymo_local_collate_fn
 
 dataset = WaymoDataset('./data/tfrecords', './data/idxs')
-dataloader = DataLoader(dataset, batch_size=1, collate_fn=lambda x: waymo_collate_fn(x))
+dataloader = DataLoader(dataset, batch_size=1, collate_fn=lambda x: waymo_local_collate_fn(x))
 
 data0 = next(iter(dataloader))
 
@@ -53,20 +54,20 @@ encodings = encoder(states_batch, agents_batch_mask, states_padding_mask_batch, 
 
 print(encodings)
 
-decoding = decoder(encodings, agents_batch_mask, states_padding_mask_batch, 
-                        states_hidden_mask_batch)
+# decoding = decoder(encodings, agents_batch_mask, states_padding_mask_batch, 
+#                         states_hidden_mask_batch)
 
-print(decoding.shape)
+# print(decoding.shape)
 
-to_predict_mask = states_padding_mask_batch*states_hidden_mask_batch
+# to_predict_mask = states_padding_mask_batch*states_hidden_mask_batch
 
-current_xy = states_batch[:,10,:2]  
-gt = states_batch[:,:,:2] - current_xy[:,None,:].repeat(1,91,1)
+# current_xy = states_batch[:,10,:2]  
+# gt = states_batch[:,:,:2] - current_xy[:,None,:].repeat(1,91,1)
 
-gt = gt[to_predict_mask] # 6 channel output : x, y, bbox_yaw, velocity_x, velocity_y, vel_yaw
+# gt = gt[to_predict_mask] # 6 channel output : x, y, bbox_yaw, velocity_x, velocity_y, vel_yaw
 
-prediction = decoding.permute(1,2,0,3)[to_predict_mask]
-print(prediction)
+# prediction = decoding.permute(1,2,0,3)[to_predict_mask]
+# print(prediction)
 
 # print(prediction)
 
