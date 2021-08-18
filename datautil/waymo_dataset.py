@@ -300,19 +300,31 @@ def transform_func(feature):
         feature[key] = func(feat)
     return feature
 
-def WaymoDataset(tfrecord_dir, idx_dir):
+class WaymoDataset(MultiTFRecordDataset):
+    def __init__(self, tfrecord_dir, idx_dir, max_iter):
+        super(WaymoDataset, self).__init__(tfrecord_dir+'/{}',idx_dir+'/{}',{})
+        
+        self.max_iter = max_iter
 
-    tfrecord_pattern = tfrecord_dir+'/{}'
-    index_pattern = idx_dir+'/{}'
+        self.splits = {}
+        fnlist = os.listdir(self.data_pattern.split('{}')[0])
+        for fn in fnlist:
+            self.splits[fn] = 1/len(fnlist)
+        
+        self.description = features_description
+        self.sequence_discription = None
+        self.shuffle_queue_size = None
+        self.transform = transform_func
+        self.infinite = True
 
-    splits = {}
-    fnlist = os.listdir(tfrecord_pattern.split('{}')[0])
-    for fn in fnlist:
-        splits[fn] = 1/len(fnlist)
+        #dataset = MultiTFRecordDataset(tfrecord_pattern, index_pattern, splits, description=features_description, transform=transform_func, infinite=False)
 
-    dataset = MultiTFRecordDataset(tfrecord_pattern, index_pattern, splits, description=features_description, transform=transform_func, infinite=False)
+        #return dataset
 
-    return dataset
+    def __len__(self):
+        return self.max_iter
+
+
 
 # TODO : edit waymo dataset reading sequenial manner
 # def WaymoSeqDataset(tfrecord_dir, idx_dir):
