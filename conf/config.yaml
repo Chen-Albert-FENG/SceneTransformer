@@ -1,3 +1,4 @@
+tag: ''
 seed: 1235
 
 #dataset:
@@ -11,11 +12,11 @@ seed: 1235
 
 dataset:
   train:
-    tfrecords: 'data/tfrecords'
-    idxs: 'data/idxs'
+    tfrecords: 'data/tfrecords_tmp'
+    idxs: 'data/idxs_tmp'
   valid:
-    tfrecords: 'data/tfrecords'
-    idxs: 'data/idxs'
+    tfrecords: 'data/tfrecords_tmp'
+    idxs: 'data/idxs_tmp'
   batchsize: 2
 
 model:
@@ -28,7 +29,7 @@ model:
   k: 4
   F: 6
 
-device_ids: '3'
+device_ids: '4'
 device_num: 1
 max_epochs: 100
 
