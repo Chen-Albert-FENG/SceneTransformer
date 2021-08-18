@@ -28,12 +28,12 @@ class SceneTransformer(pl.LightningModule):
         
     def forward(self, states_batch, agents_batch_mask, states_padding_mask_batch, states_hidden_mask_batch,
                     roadgraph_feat_batch, roadgraph_valid_batch, traffic_light_feat_batch, traffic_light_valid_batch,
-                        agent_rg_mask, agent_traffic_mask, current_xy):
+                        agent_rg_mask, agent_traffic_mask):
 
         encodings = self.encoder(states_batch, agents_batch_mask, states_padding_mask_batch, states_hidden_mask_batch,
                                     roadgraph_feat_batch, roadgraph_valid_batch, traffic_light_feat_batch, traffic_light_valid_batch,
                                         agent_rg_mask, agent_traffic_mask)
-        decoding = self.decoder(encodings, agents_batch_mask, states_padding_mask_batch, current_xy)
+        decoding = self.decoder(encodings, agents_batch_mask, states_padding_mask_batch)
         
         return decoding.permute(1,2,0,3)
 
