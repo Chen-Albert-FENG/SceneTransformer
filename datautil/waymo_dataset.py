@@ -301,11 +301,8 @@ def transform_func(feature):
     return feature
 
 class WaymoDataset(MultiTFRecordDataset):
-    def __init__(self, tfrecord_dir, idx_dir, max_iter):
+    def __init__(self, tfrecord_dir, idx_dir):
         super(WaymoDataset, self).__init__(tfrecord_dir+'/{}',idx_dir+'/{}',{})
-        
-        self.max_iter = max_iter
-
         self.splits = {}
         fnlist = os.listdir(self.data_pattern.split('{}')[0])
         for fn in fnlist:
@@ -317,14 +314,19 @@ class WaymoDataset(MultiTFRecordDataset):
         self.transform = transform_func
         self.infinite = True
 
-        #dataset = MultiTFRecordDataset(tfrecord_pattern, index_pattern, splits, description=features_description, transform=transform_func, infinite=False)
-
-        #return dataset
+        if self.index_pattern is not None:
+            self.num_samples = sum(
+                sum(1 for _ in open(self.index_pattern.format(split)))
+                for split in self.splits
+            )
+        else:
+            self.num_samples = None
 
     def __len__(self):
-        return self.max_iter
-
-
+        if self.num_samples is not None:
+            return self.num_samples
+        else:
+            raise NotImplementedError()
 
 # TODO : edit waymo dataset reading sequenial manner
 # def WaymoSeqDataset(tfrecord_dir, idx_dir):
@@ -334,25 +336,25 @@ class WaymoDataset(MultiTFRecordDataset):
 #     splits = {}
 #     fnlist = os.listdir(tfrecord_pattern.split('{}')[0])
 
-def waymo_collate_fn(batch, GD=16, GS=1400): # GS = max number of static roadgraph element (1400), GD = max number of dynamic roadgraph (16)
+def waymo_collate_fn(batch, time_steps=91, GD=16, GS=1400): # GS = max number of static roadgraph element (1400), GD = max number of dynamic roadgraph (16)
     past_states_batch = np.array([]).reshape(-1,10,9)
     past_states_valid_batch = np.array([]).reshape(-1,10)
     current_states_batch = np.array([]).reshape(-1,1,9)
     current_states_valid_batch = np.array([]).reshape(-1,1)
     future_states_batch = np.array([]).reshape(-1,80,9)
     future_states_valid_batch = np.array([]).reshape(-1,80)
-    states_batch = np.array([]).reshape(-1,91,9)
+    states_batch = np.array([]).reshape(-1,time_steps,9)
 
-    states_padding_mask_batch = np.array([]).reshape(-1,91)
-    states_hidden_mask_BP_batch = np.array([]).reshape(-1,91)
-    states_hidden_mask_CBP_batch = np.array([]).reshape(-1,91)
-    states_hidden_mask_GDP_batch =np.array([]).reshape(-1,91)
+    states_padding_mask_batch = np.array([]).reshape(-1,time_steps)
+    states_hidden_mask_BP_batch = np.array([]).reshape(-1,time_steps)
+    states_hidden_mask_CBP_batch = np.array([]).reshape(-1,time_steps)
+    states_hidden_mask_GDP_batch =np.array([]).reshape(-1,time_steps)
 
-    roadgraph_feat_batch = np.array([]).reshape(-1,91,6)
-    roadgraph_valid_batch = np.array([]).reshape(-1,91)
+    roadgraph_feat_batch = np.array([]).reshape(-1,time_steps,6)
+    roadgraph_padding_batch = np.array([]).reshape(-1,time_steps)
 
-    traffic_light_feat_batch = np.array([]).reshape(-1,91,3)
-    traffic_light_valid_batch = np.array([]).reshape(-1,91)
+    traffic_light_feat_batch = np.array([]).reshape(-1,time_steps,3)
+    traffic_light_padding_batch = np.array([]).reshape(-1,time_steps)
 
     num_agents = np.array([])
 
@@ -371,27 +373,33 @@ def waymo_collate_fn(batch, GD=16, GS=1400): # GS = max number of static roadgra
                                         data['state/future/width'],data['state/future/length'],data['state/future/timestamp_micros']), axis=-1)
         future_states_valid = data['state/future/valid'] > 0.
 
+        agent_types = data['state/type']
+
         states_feat = np.concatenate((past_states,current_states,future_states),axis=1)
         states_valid = np.concatenate((past_states_valid,current_states_valid,future_states_valid),axis=1)
         states_any_mask = np.sum(states_valid,axis=1) > 0
         states_feat = states_feat[states_any_mask]
-
-        states_padding_mask = np.concatenate((past_states_valid[states_any_mask],current_states_valid[states_any_mask],future_states_valid[states_any_mask]), axis=1)
+        states_padding_mask = np.concatenate((past_states_valid,current_states_valid,future_states_valid), axis=1)[states_any_mask]
         states_padding_mask = states_padding_mask==False
 
-        # basic_mask = np.zeros((len(states_feat),91)).astype(np.bool_)
-        states_hidden_mask_BP = np.ones((len(states_feat),91)).astype(np.bool_)
-        states_hidden_mask_BP[:,:11] = False
-        sdvidx = np.where(data['state/is_sdc'][states_any_mask] == 1)[0][0]
-        states_hidden_mask_CBP = np.ones((len(states_feat),91)).astype(np.bool_)
-        states_hidden_mask_CBP[:,:11] = False
-        states_hidden_mask_CBP[sdvidx,:] = False
-        states_hidden_mask_GDP = np.ones((len(states_feat),91)).astype(np.bool_)
-        states_hidden_mask_GDP[:,:11] = False
-        states_hidden_mask_GDP[sdvidx,-1] = False
-        # states_hidden_mask_CDP = np.zeros((len(states_feat),91)).astype(np.bool_)
+        # Mask only vehicles
+        agent_type_mask = agent_types[states_any_mask]==1
+        states_feat = states_feat[agent_type_mask]
+        states_padding_mask = states_padding_mask[agent_type_mask]
 
         num_agents = np.append(num_agents, len(states_feat))
+
+        # basic_mask = np.zeros((len(states_feat),time_steps)).astype(np.bool_)
+        states_hidden_mask_BP = np.ones((len(states_feat),time_steps)).astype(np.bool_)
+        states_hidden_mask_BP[:,:11] = False
+        sdvidx = np.where(data['state/is_sdc'][states_any_mask][agent_type_mask] == 1)[0][0]
+        states_hidden_mask_CBP = np.ones((len(states_feat),time_steps)).astype(np.bool_)
+        states_hidden_mask_CBP[:,:11] = False
+        states_hidden_mask_CBP[sdvidx,:] = False
+        states_hidden_mask_GDP = np.ones((len(states_feat),time_steps)).astype(np.bool_)
+        states_hidden_mask_GDP[:,:11] = False
+        states_hidden_mask_GDP[sdvidx,-1] = False
+        # states_hidden_mask_CDP = np.zeros((len(states_feat),time_steps)).astype(np.bool_)
         
         # Static Road Graph
         roadgraph_feat = np.concatenate((data['roadgraph_samples/id'], data['roadgraph_samples/type'], 
@@ -415,9 +423,9 @@ def waymo_collate_fn(batch, GD=16, GS=1400): # GS = max number of static roadgra
             roadgraph_valid[:valid_num,:] = True
             # (Optional) : construct roadgraph valid
 
-        roadgraph_feat = np.repeat(roadgraph_feat[:,np.newaxis,:],91,axis=1)
-        roadgraph_valid = np.repeat(roadgraph_valid,91,axis=1)
-        roadgraph_valid = ~roadgraph_valid
+        roadgraph_feat = np.repeat(roadgraph_feat[:,np.newaxis,:],time_steps,axis=1)
+        roadgraph_valid = np.repeat(roadgraph_valid,time_steps,axis=1)
+        roadgraph_padding = ~roadgraph_valid
 
         # Dynamic Road Graph
         traffic_light_states_past = np.stack((data['traffic_light_state/past/state'].T,data['traffic_light_state/past/x'].T,data['traffic_light_state/past/y'].T),axis=-1)
@@ -429,7 +437,7 @@ def waymo_collate_fn(batch, GD=16, GS=1400): # GS = max number of static roadgra
 
         traffic_light_feat = np.concatenate((traffic_light_states_past,traffic_light_states_current,traffic_light_states_future),axis=1)
         traffic_light_valid = np.concatenate((traffic_light_valid_past,traffic_light_valid_current,traffic_light_valid_future),axis=1)
-        traffic_light_valid = ~traffic_light_valid
+        traffic_light_padding = ~traffic_light_valid
 
         # Concat across batch
         past_states_batch = np.concatenate((past_states_batch, past_states), axis=0)
@@ -447,10 +455,10 @@ def waymo_collate_fn(batch, GD=16, GS=1400): # GS = max number of static roadgra
         states_hidden_mask_GDP_batch =np.concatenate((states_hidden_mask_GDP_batch,states_hidden_mask_GDP), axis=0)
 
         roadgraph_feat_batch = np.concatenate((roadgraph_feat_batch, roadgraph_feat), axis=0)
-        roadgraph_valid_batch = np.concatenate((roadgraph_valid_batch, roadgraph_valid), axis=0)
+        roadgraph_padding_batch = np.concatenate((roadgraph_padding_batch, roadgraph_padding), axis=0)
 
         traffic_light_feat_batch = np.concatenate((traffic_light_feat_batch, traffic_light_feat), axis=0)
-        traffic_light_valid_batch = np.concatenate((traffic_light_valid_batch, traffic_light_valid), axis=0)
+        traffic_light_padding_batch = np.concatenate((traffic_light_padding_batch, traffic_light_padding), axis=0)
 
     num_agents_accum = np.cumsum(np.insert(num_agents,0,0)).astype(np.int64)
     agents_batch_mask = np.ones((num_agents_accum[-1],num_agents_accum[-1])) # padding. 1 -> padded (ignore att) / 0 -> non-padded (do att)
@@ -470,16 +478,25 @@ def waymo_collate_fn(batch, GD=16, GS=1400): # GS = max number of static roadgra
     states_hidden_mask_GDP_batch = torch.BoolTensor(states_hidden_mask_GDP_batch)
     
     roadgraph_feat_batch = torch.FloatTensor(roadgraph_feat_batch)
-    roadgraph_valid_batch = torch.BoolTensor(roadgraph_valid_batch)
+    roadgraph_padding_batch = torch.BoolTensor(roadgraph_padding_batch)
     traffic_light_feat_batch = torch.FloatTensor(traffic_light_feat_batch)
-    traffic_light_valid_batch = torch.BoolTensor(traffic_light_valid_batch)
+    traffic_light_padding_batch = torch.BoolTensor(traffic_light_padding_batch)
 
     agent_rg_mask = torch.BoolTensor(agent_rg_mask)
     agent_traffic_mask = torch.BoolTensor(agent_traffic_mask)
 
-    # TODO : agent-rg per batch mask (다른 scene 의 rg 와 agent 끼리 attention = 0  으로 만들기 위함)
+    # Remove Non-valid roadgraph and traffic light
+    roadgraph_valid_mask = roadgraph_padding_batch.sum(dim=-1) != time_steps
+    roadgraph_feat_batch = roadgraph_feat_batch[roadgraph_valid_mask]
+    roadgraph_padding_batch = roadgraph_padding_batch[roadgraph_valid_mask]
+    agent_rg_mask = agent_rg_mask[:,roadgraph_valid_mask] 
+
+    traffic_light_valid_mask = traffic_light_padding_batch.sum(dim=-1) != time_steps
+    traffic_light_feat_batch = traffic_light_feat_batch[traffic_light_valid_mask]
+    traffic_light_padding_batch = traffic_light_padding_batch[traffic_light_valid_mask]
+    agent_traffic_mask = agent_traffic_mask[:,traffic_light_valid_mask]     
         
     return (states_batch, agents_batch_mask, states_padding_mask_batch, 
                 (states_hidden_mask_BP_batch, states_hidden_mask_CBP_batch, states_hidden_mask_GDP_batch), 
-                    roadgraph_feat_batch, roadgraph_valid_batch, traffic_light_feat_batch, traffic_light_valid_batch,
+                    roadgraph_feat_batch, roadgraph_padding_batch, traffic_light_feat_batch, traffic_light_padding_batch,
                         agent_rg_mask, agent_traffic_mask)

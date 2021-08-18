@@ -10,10 +10,9 @@ from model.encoder import Encoder
 from model.decoder import Decoder
 
 class SceneTransformer(pl.LightningModule):
-    def __init__(self, device, in_feat_dim, in_dynamic_rg_dim, in_static_rg_dim, 
+    def __init__(self, in_feat_dim, in_dynamic_rg_dim, in_static_rg_dim, 
                     time_steps, feature_dim, head_num, k, F):
         super(SceneTransformer, self).__init__()
-        # self.device = device
         self.in_feat_dim = in_feat_dim
         self.in_dynamic_rg_dim = in_dynamic_rg_dim
         self.in_static_rg_dim = in_static_rg_dim
@@ -26,8 +25,6 @@ class SceneTransformer(pl.LightningModule):
         self.encoder = Encoder(self.device, self.in_feat_dim, self.in_dynamic_rg_dim, self.in_static_rg_dim,
                                     self.time_steps, self.feature_dim, self.head_num)
         self.decoder = Decoder(self.device, self.time_steps, self.feature_dim, self.head_num, self.k, self.F)
-        # self.model = nn.Sequential(self.encoder, self.decoder)
-        # self.model = self.model.to(self.device)
         
     def forward(self, states_batch, agents_batch_mask, states_padding_mask_batch, states_hidden_mask_batch,
                     roadgraph_feat_batch, roadgraph_valid_batch, traffic_light_feat_batch, traffic_light_valid_batch,
@@ -47,14 +44,6 @@ class SceneTransformer(pl.LightningModule):
                     roadgraph_feat_batch, roadgraph_valid_batch, traffic_light_feat_batch, traffic_light_valid_batch, \
                         agent_rg_mask, agent_traffic_mask = batch
 
-        # states_batch, agents_batch_mask, states_padding_mask_batch, \
-        #         (states_hidden_mask_BP, states_hidden_mask_CBP, states_hidden_mask_GDP), \
-        #             roadgraph_feat_batch, roadgraph_valid_batch, traffic_light_feat_batch, traffic_light_valid_batch, \
-        #                 agent_rg_mask, agent_traffic_mask = states_batch.to(self.device), agents_batch_mask.to(self.device), states_padding_mask_batch.to(self.device), \
-        #                                                                 (states_hidden_mask_BP.to(self.device), states_hidden_mask_CBP.to(self.device), states_hidden_mask_GDP.to(self.device)), \
-        #                                                                     roadgraph_feat_batch.to(self.device), roadgraph_valid_batch.to(self.device), traffic_light_feat_batch.to(self.device), traffic_light_valid_batch.to(self.device), \
-        #                                                                         agent_rg_mask.to(self.device), agent_traffic_mask.to(self.device)
-        
         # TODO : randomly select hidden mask
         states_hidden_mask_batch = states_hidden_mask_BP
         
@@ -66,17 +55,7 @@ class SceneTransformer(pl.LightningModule):
         states_padding_mask_batch = states_padding_mask_batch[no_nonpad_mask]
         states_hidden_mask_batch = states_hidden_mask_batch[no_nonpad_mask]
         agent_rg_mask = agent_rg_mask[no_nonpad_mask]
-        agent_traffic_mask = agent_traffic_mask[no_nonpad_mask]  
-
-        roadgraph_valid_mask = roadgraph_valid_batch.sum(dim=-1)!=91
-        roadgraph_feat_batch = roadgraph_feat_batch[roadgraph_valid_mask]
-        roadgraph_valid_batch = roadgraph_valid_batch[roadgraph_valid_mask]
-        agent_rg_mask = agent_rg_mask[:,roadgraph_valid_mask]  
-
-        traffic_light_valid_mask = traffic_light_valid_batch.sum(dim=-1) != self.time_steps
-        traffic_light_feat_batch = traffic_light_feat_batch[traffic_light_valid_mask]
-        traffic_light_valid_batch = traffic_light_valid_batch[traffic_light_valid_mask]
-        agent_traffic_mask = agent_traffic_mask[:,traffic_light_valid_mask]                                                                  
+        agent_traffic_mask = agent_traffic_mask[no_nonpad_mask]                                                                 
         
         # Predict
         prediction = self(states_batch, agents_batch_mask, states_padding_mask_batch, states_hidden_mask_batch, 
@@ -92,14 +71,6 @@ class SceneTransformer(pl.LightningModule):
         Loss = nn.MSELoss(reduction='none')
         loss_ = Loss(gt.unsqueeze(1).repeat(1,6,1), prediction)
         loss_ = torch.min(torch.sum(torch.sum(loss_, dim=0),dim=-1))
-        #print(states_padding_mask_batch.sum(dim=-1))
-        #if torch.isnan(loss_):
-        #    print(agents_batch_mask.sum(dim=-1), '\n')
-        #    print(states_padding_mask_batch.sum(dim=-1), '\n')
-        #    print(agent_rg_mask.sum(dim=-1), '\n')
-        #    print(agent_traffic_mask.sum(dim=-1), '\n')
-            #sys.exit()
-         #   loss_ = torch.zeros(1).to(gt.device)
 
         return loss_
 
@@ -121,14 +92,6 @@ class SceneTransformer(pl.LightningModule):
                     roadgraph_feat_batch, roadgraph_valid_batch, traffic_light_feat_batch, traffic_light_valid_batch, \
                         agent_rg_mask, agent_traffic_mask = batch
 
-        # states_batch, agents_batch_mask, states_padding_mask_batch, \
-        #         (states_hidden_mask_BP, states_hidden_mask_CBP, states_hidden_mask_GDP), \
-        #             roadgraph_feat_batch, roadgraph_valid_batch, traffic_light_feat_batch, traffic_light_valid_batch, \
-        #                 agent_rg_mask, agent_traffic_mask = states_batch.to(self.device), agents_batch_mask.to(self.device), states_padding_mask_batch.to(self.device), \
-        #                                                                 (states_hidden_mask_BP.to(self.device), states_hidden_mask_CBP.to(self.device), states_hidden_mask_GDP.to(self.device)), \
-        #                                                                     roadgraph_feat_batch.to(self.device), roadgraph_valid_batch.to(self.device), traffic_light_feat_batch.to(self.device), traffic_light_valid_batch.to(self.device), \
-        #                                                                         agent_rg_mask.to(self.device), agent_traffic_mask.to(self.device)
-        
         # TODO : randomly select hidden mask
         states_hidden_mask_batch = states_hidden_mask_BP
         
@@ -140,17 +103,7 @@ class SceneTransformer(pl.LightningModule):
         states_padding_mask_batch = states_padding_mask_batch[no_nonpad_mask]
         states_hidden_mask_batch = states_hidden_mask_batch[no_nonpad_mask]
         agent_rg_mask = agent_rg_mask[no_nonpad_mask]
-        agent_traffic_mask = agent_traffic_mask[no_nonpad_mask] 
-
-        roadgraph_valid_mask = roadgraph_valid_batch.sum(dim=-1)!=91
-        roadgraph_feat_batch = roadgraph_feat_batch[roadgraph_valid_mask]
-        roadgraph_valid_batch = roadgraph_valid_batch[roadgraph_valid_mask]
-        agent_rg_mask = agent_rg_mask[:,roadgraph_valid_mask]     
-
-        traffic_light_valid_mask = traffic_light_valid_batch.sum(dim=-1) != self.time_steps
-        traffic_light_feat_batch = traffic_light_feat_batch[traffic_light_valid_mask]
-        traffic_light_valid_batch = traffic_light_valid_batch[traffic_light_valid_mask]
-        agent_traffic_mask = agent_traffic_mask[:,traffic_light_valid_mask]                                                                 
+        agent_traffic_mask = agent_traffic_mask[no_nonpad_mask]                                                                
         
         # Predict
         prediction = self(states_batch, agents_batch_mask, states_padding_mask_batch, states_hidden_mask_batch, 
