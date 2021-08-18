@@ -71,7 +71,7 @@ class SceneTransformer(pl.LightningModule):
         Loss = nn.MSELoss(reduction='none')
         loss_ = Loss(gt.unsqueeze(1).repeat(1,6,1), prediction)
         loss_ = torch.min(torch.sum(torch.sum(loss_, dim=0),dim=-1))
-
+        self.log_dict({'train_loss':loss_})
         return loss_
 
     def on_after_backward(self) -> None:
@@ -87,6 +87,7 @@ class SceneTransformer(pl.LightningModule):
             self.zero_grad()
 
     def validation_step(self, batch, batch_idx):
+        
         states_batch, agents_batch_mask, states_padding_mask_batch, \
                 (states_hidden_mask_BP, states_hidden_mask_CBP, states_hidden_mask_GDP), \
                     roadgraph_feat_batch, roadgraph_valid_batch, traffic_light_feat_batch, traffic_light_valid_batch, \
