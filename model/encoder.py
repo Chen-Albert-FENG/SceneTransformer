@@ -27,6 +27,7 @@ class Encoder(nn.Module):
                             nn.BatchNorm1d(128), Permute4Batchnorm((0,2,1)), nn.ReLU(), 
                             nn.Linear(128,feature_dim), Permute4Batchnorm((0,2,1)),
                             nn.BatchNorm1d(feature_dim), Permute4Batchnorm((0,2,1)), nn.ReLU() )
+        self.layer_A.apply(init_xavier_glorot)
         # layer B : input -> [GD,T,in_dynamic_rg_dim] / output -> [GD,T,D]
         self.layer_B = nn.Sequential(nn.Linear(in_dynamic_rg_dim,32), Permute4Batchnorm((0,2,1)),
                             nn.BatchNorm1d(32), Permute4Batchnorm((0,2,1)), nn.ReLU(), 
@@ -34,6 +35,7 @@ class Encoder(nn.Module):
                             nn.BatchNorm1d(128), Permute4Batchnorm((0,2,1)), nn.ReLU(),
                             nn.Linear(128,feature_dim), Permute4Batchnorm((0,2,1)),
                             nn.BatchNorm1d(feature_dim), Permute4Batchnorm((0,2,1)), nn.ReLU())
+        self.layer_B.apply(init_xavier_glorot)
         # layer C : input -> [GD,T,in_dynamic_rg_dim] / output -> [GD,T,D]
         self.layer_C = nn.Sequential(nn.Linear(in_static_rg_dim,32), Permute4Batchnorm((0,2,1)),
                             nn.BatchNorm1d(32), Permute4Batchnorm((0,2,1)), nn.ReLU(), 
@@ -41,6 +43,7 @@ class Encoder(nn.Module):
                             nn.BatchNorm1d(128), Permute4Batchnorm((0,2,1)), nn.ReLU(),
                             nn.Linear(128,feature_dim), Permute4Batchnorm((0,2,1)),
                             nn.BatchNorm1d(feature_dim), Permute4Batchnorm((0,2,1)), nn.ReLU())
+        self.layer_C.apply(init_xavier_glorot)
  
         # layer D,E,F,G,H,I : input -> [A,T,D] / outpu -> [A,T,D]
         self.layer_D = SelfAttLayer_Enc(self.device, self.time_steps, self.feature_dim, self.head_num, self.k, across_time=True)

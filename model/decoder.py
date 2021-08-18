@@ -20,6 +20,7 @@ class Decoder(nn.Module):
         self.onehots_ = FU.one_hot(onehots_, num_classes=F).view(self.F,1,1,self.F)
 
         self.layer_T = nn.Sequential(nn.Linear(self.feature_dim+self.F,feature_dim), nn.ReLU())
+        self.layer_T.apply(init_xavier_glorot)
 
         self.layer_U = SelfAttLayer_Dec(self.device,self.time_steps,self.feature_dim,self.head_num,self.k,across_time=True)
         self.layer_V = SelfAttLayer_Dec(self.device,self.time_steps,self.feature_dim,self.head_num,self.k,across_time=False)
@@ -31,7 +32,8 @@ class Decoder(nn.Module):
 
         self.layer_Z1 = nn.Sequential(nn.Linear(self.feature_dim,6), nn.ReLU(), Permute4Batchnorm((1,3,0,2)),
                             nn.BatchNorm2d(6), Permute4Batchnorm((2,0,3,1))) 
-        self.layer_Z2 = nn.Linear(6,6)  # x, y, bbox_yaw, velocity_x, velocity_y, vel_yaw
+        self.layer_Z1.apply(init_xavier_glorot)
+        self.layer_Z2 = nn.Linear(6,2)  # x, y
 
     def forward(self, state_feat, batch_mask, padding_mask, hidden_mask=None):
         A,T,D = state_feat.shape

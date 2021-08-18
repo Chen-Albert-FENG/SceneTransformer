@@ -65,7 +65,7 @@ class SceneTransformer(pl.LightningModule):
         # Calculate Loss
         to_predict_mask = ~states_padding_mask_batch*states_hidden_mask_batch
         
-        gt = states_batch[:,:,:6][to_predict_mask]
+        gt = states_batch[:,:,:2][to_predict_mask]
         prediction = prediction[to_predict_mask]    
         #print(prediction) 
         Loss = nn.MSELoss(reduction='none')
@@ -113,7 +113,7 @@ class SceneTransformer(pl.LightningModule):
         # Calculate Loss
         to_predict_mask = ~states_padding_mask_batch*states_hidden_mask_batch
         
-        gt = states_batch[:,:,:6][to_predict_mask]
+        gt = states_batch[:,:,:2][to_predict_mask]
         prediction = prediction[to_predict_mask]     
         
         Loss = nn.MSELoss(reduction='none')
