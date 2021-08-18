@@ -74,7 +74,7 @@ class SceneTransformer(pl.LightningModule):
         Loss = nn.MSELoss(reduction='none')
         loss_ = Loss(gt.unsqueeze(1).repeat(1,6,1), prediction)
         loss_ = torch.min(torch.mean(torch.mean(loss_, dim=0),dim=-1))
-        if loss_ > 10.:
+        if self.current_epoch > 0 and (loss_ > .1 or loss_ < 0.01):
             import ipdb
             ipdb.set_trace()
         self.log_dict({'train_loss':loss_})

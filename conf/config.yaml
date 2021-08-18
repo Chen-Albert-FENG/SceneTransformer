@@ -29,7 +29,7 @@ model:
   k: 4
   F: 6
 
-device_ids: '4'
+device_ids: '2'
 device_num: 1
 max_epochs: 100
 
