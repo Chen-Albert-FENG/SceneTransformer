@@ -62,16 +62,17 @@ class SceneTransformer(pl.LightningModule):
         # Predict
         prediction = self(states_batch, agents_batch_mask, states_padding_mask_batch, states_hidden_mask_batch, 
                         roadgraph_feat_batch, roadgraph_valid_batch, traffic_light_feat_batch, traffic_light_valid_batch,
-                            agent_rg_mask, agent_traffic_mask, current_xy)
+                            agent_rg_mask, agent_traffic_mask)
 
         # Calculate Loss
         to_predict_mask = ~states_padding_mask_batch*states_hidden_mask_batch
         
-        gt = states_batch[:,:,:2][to_predict_mask]
+        gt = states_batch[:,:,:2][to_predict_mask] # [F,T,2]
+        gt_ = gt - current_xy[None,:,:].repeat(6,91,1)
         prediction = prediction[to_predict_mask]    
         #print(prediction) 
         Loss = nn.MSELoss(reduction='none')
-        loss_ = Loss(gt.unsqueeze(1).repeat(1,6,1), prediction)
+        loss_ = Loss(gt_.unsqueeze(1).repeat(1,6,1), prediction)
         loss_ = torch.min(torch.sum(torch.sum(loss_, dim=0),dim=-1))
         self.log_dict({'train_loss':loss_})
         return loss_
@@ -113,16 +114,17 @@ class SceneTransformer(pl.LightningModule):
         # Predict
         prediction = self(states_batch, agents_batch_mask, states_padding_mask_batch, states_hidden_mask_batch, 
                         roadgraph_feat_batch, roadgraph_valid_batch, traffic_light_feat_batch, traffic_light_valid_batch,
-                            agent_rg_mask, agent_traffic_mask, current_xy)
+                            agent_rg_mask, agent_traffic_mask)
 
         # Calculate Loss
         to_predict_mask = ~states_padding_mask_batch*states_hidden_mask_batch
         
         gt = states_batch[:,:,:2][to_predict_mask]
+        gt_ = gt - current_xy[None,:,:].repeat(6,91,1)
         prediction = prediction[to_predict_mask]     
         
         Loss = nn.MSELoss(reduction='none')
-        loss_ = Loss(gt.unsqueeze(1).repeat(1,6,1), prediction)
+        loss_ = Loss(gt_.unsqueeze(1).repeat(1,6,1), prediction)
         loss_ = torch.min(torch.sum(torch.sum(loss_, dim=0),dim=-1))
 
         self.log_dict({'val_loss': loss_})
