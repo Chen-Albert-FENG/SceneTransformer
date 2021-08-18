@@ -35,7 +35,7 @@ class Decoder(nn.Module):
         self.layer_Z1.apply(init_xavier_glorot)
         self.layer_Z2 = nn.Linear(6,2)  # x, y
 
-    def forward(self, state_feat, batch_mask, padding_mask, hidden_mask=None):
+    def forward(self, state_feat, batch_mask, padding_mask, current_xy, hidden_mask=None):
         A,T,D = state_feat.shape
         assert (T==self.time_steps and D==self.feature_dim)
 
@@ -55,5 +55,7 @@ class Decoder(nn.Module):
         x = self.layer_Y(x)
         x = self.layer_Z1(x)
         x = self.layer_Z2(x)                                # [F,A,T,D]
+
+        x[:,:,:,:2] += current_xy[None,:,None,:].repeat(self.F,1,self.time_steps,1)
         
         return x

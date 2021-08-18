@@ -28,12 +28,12 @@ class SceneTransformer(pl.LightningModule):
         
     def forward(self, states_batch, agents_batch_mask, states_padding_mask_batch, states_hidden_mask_batch,
                     roadgraph_feat_batch, roadgraph_valid_batch, traffic_light_feat_batch, traffic_light_valid_batch,
-                        agent_rg_mask, agent_traffic_mask):
+                        agent_rg_mask, agent_traffic_mask, current_xy):
 
         encodings = self.encoder(states_batch, agents_batch_mask, states_padding_mask_batch, states_hidden_mask_batch,
                                     roadgraph_feat_batch, roadgraph_valid_batch, traffic_light_feat_batch, traffic_light_valid_batch,
                                         agent_rg_mask, agent_traffic_mask)
-        decoding = self.decoder(encodings, agents_batch_mask, states_padding_mask_batch)
+        decoding = self.decoder(encodings, agents_batch_mask, states_padding_mask_batch, current_xy)
         
         return decoding.permute(1,2,0,3)
 
@@ -55,12 +55,14 @@ class SceneTransformer(pl.LightningModule):
         states_padding_mask_batch = states_padding_mask_batch[no_nonpad_mask]
         states_hidden_mask_batch = states_hidden_mask_batch[no_nonpad_mask]
         agent_rg_mask = agent_rg_mask[no_nonpad_mask]
-        agent_traffic_mask = agent_traffic_mask[no_nonpad_mask]                                                                 
+        agent_traffic_mask = agent_traffic_mask[no_nonpad_mask]       
+        
+        current_xy = states_batch[:,10,:2]                                                          
         
         # Predict
         prediction = self(states_batch, agents_batch_mask, states_padding_mask_batch, states_hidden_mask_batch, 
                         roadgraph_feat_batch, roadgraph_valid_batch, traffic_light_feat_batch, traffic_light_valid_batch,
-                            agent_rg_mask, agent_traffic_mask)
+                            agent_rg_mask, agent_traffic_mask, current_xy)
 
         # Calculate Loss
         to_predict_mask = ~states_padding_mask_batch*states_hidden_mask_batch
