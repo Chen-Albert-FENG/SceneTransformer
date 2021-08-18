@@ -37,6 +37,8 @@ decoder = decoder.to(device)
 states_hidden_mask_batch = states_hidden_mask_BP
 
 no_nonpad_mask = torch.sum((~states_padding_mask_batch*~states_hidden_mask_batch),dim=-1) != 0
+no_nonpad_mask *= (states_padding_mask_batch.sum(dim=-1) < 85)
+no_nonpad_mask *= ~states_padding_mask_batch[:,10]
 
 states_batch = states_batch[no_nonpad_mask]
 agents_batch_mask = agents_batch_mask[no_nonpad_mask][:,no_nonpad_mask]
@@ -51,17 +53,22 @@ encodings = encoder(states_batch, agents_batch_mask, states_padding_mask_batch, 
 
 print(encodings)
 
-# decoding = decoder(encodings, agents_batch_mask, states_padding_mask_batch, 
-#                         states_hidden_mask_batch)
+decoding = decoder(encodings, agents_batch_mask, states_padding_mask_batch, 
+                        states_hidden_mask_batch)
 
-# print(decoding.shape)
+print(decoding.shape)
 
-# to_predict_mask = states_padding_mask_batch*states_hidden_mask_batch
-# gt = states_batch[:,:,:6][to_predict_mask] # 6 channel output : x, y, bbox_yaw, velocity_x, velocity_y, vel_yaw
+to_predict_mask = states_padding_mask_batch*states_hidden_mask_batch
 
-# prediction = decoding.permute(1,2,0,3)[to_predict_mask]
+current_xy = states_batch[:,10,:2]  
+gt = states_batch[:,:,:2] - current_xy[:,None,:].repeat(1,91,1)
 
-# # print(prediction)
+gt = gt[to_predict_mask] # 6 channel output : x, y, bbox_yaw, velocity_x, velocity_y, vel_yaw
+
+prediction = decoding.permute(1,2,0,3)[to_predict_mask]
+print(prediction)
+
+# print(prediction)
 
 # def some_loss_function(*args):
 #     return 0
