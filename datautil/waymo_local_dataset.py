@@ -104,7 +104,7 @@ def waymo_local_collate_fn(batch, halfwidth=100, time_steps=91, GD=16, GS=1400):
         rg_xy_mask = rg_xy_mask[:,0]*rg_xy_mask[:,1]
         roadgraph_feat[:,2:4] /= halfwidth
         roadgraph_feat = roadgraph_feat[rg_xy_mask]
-        roadgraph_valid = np.ones(roadgraph_feat.shape[0]).astype(np.bool_)
+        roadgraph_valid = np.ones((roadgraph_feat.shape[0],1)).astype(np.bool_)
 
         if roadgraph_feat.shape[0] > GS:
             spacing = roadgraph_feat.shape[0] // GS
