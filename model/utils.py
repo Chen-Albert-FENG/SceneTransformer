@@ -42,7 +42,7 @@ class SelfAttLayer_Enc(nn.Module):
         self.k = k
 
         self.layer_X_ = nn.LayerNorm(feature_dim)
-        self.layer_att_ = nn.MultiheadAttention(embed_dim=feature_dim,num_heads=head_num)
+        self.layer_att_ = nn.MultiheadAttention(embed_dim=feature_dim,num_heads=head_num,add_zero_attn=True)
         self.layer_F1_ = nn.Sequential(nn.Linear(feature_dim,feature_dim), nn.ReLU())
         self.layer_F1_.apply(init_xavier_glorot)
         #self.layer_F2_ = nn.Sequential(nn.Linear(k*feature_dim,feature_dim), nn.ReLU())
@@ -59,24 +59,23 @@ class SelfAttLayer_Enc(nn.Module):
         x_ = self.layer_X_(x) # [A,T,D]
 
         if self.across_time:
-            q = x_.permute(1,0,2)                       # [L,N,E] : [A,T,D]->[T,A,D]
-            k,v = q, q                   # [S,N,E] : [T,A,D]
+            q_ = x_.permute(1,0,2)                       # [L,N,E] : [A,T,D]->[T,A,D]
+            k,v = x_.permute(1,0,2), x_.permute(1,0,2)                   # [S,N,E] : [T,A,D]
 
             key_padding_mask = padding_mask             # [N,S] : [A,T]
             attn_mask = None  
             # att_output : [L,N,E] : [T,A,D]
-            att_output, _ = self.layer_att_(q,k,v,key_padding_mask=key_padding_mask,attn_mask=attn_mask)
+            att_output, _ = self.layer_att_(q_,k,v,key_padding_mask=key_padding_mask,attn_mask=attn_mask)
             # att_output : [A,T,D]
             att_output = att_output.permute(1,0,2)
         else:
-            q = x_                                      # [L,N,E] = [A,T,D]
-            k, v = q, q                 # [S,N,E] = [A,T,D]
+            q_ = x_                                      # [L,N,E] = [A,T,D]
+            k, v = x_, x_                 # [S,N,E] = [A,T,D]
 
             key_padding_mask = padding_mask.permute(1,0)# [N,S] = [T,A]
             attn_mask = batch_mask                      # [L,S] = [A,A]
             # att_output : [L,N,E] : [A,T,D]
-            att_output, _ = self.layer_att_(q,k,v,key_padding_mask=key_padding_mask,attn_mask=attn_mask)
-
+            att_output, _ = self.layer_att_(q_,k,v,key_padding_mask=key_padding_mask,attn_mask=attn_mask)
         S_ = att_output + x
         F1_ = self.layer_F1_(S_)
         #F2_ = self.layer_F2_(F1_)
@@ -95,7 +94,7 @@ class SelfAttLayer_Dec(nn.Module):
         self.k = k
 
         self.layer_X_ = nn.LayerNorm(feature_dim)
-        self.layer_att_ = nn.MultiheadAttention(embed_dim=feature_dim,num_heads=head_num)
+        self.layer_att_ = nn.MultiheadAttention(embed_dim=feature_dim,num_heads=head_num,add_zero_attn=True)
         self.layer_F1_ = nn.Sequential(nn.Linear(feature_dim,feature_dim), nn.ReLU())
         self.layer_F1_.apply(init_xavier_glorot)
         #self.layer_F2_ = nn.Sequential(nn.Linear(k*feature_dim,feature_dim), nn.ReLU())
@@ -156,8 +155,8 @@ class CrossAttLayer_Enc(nn.Module):
         #self.layer_F2_ = nn.Sequential(nn.Linear(k*feature_dim,feature_dim), nn.ReLU())
         self.layer_Z_ = nn.LayerNorm(feature_dim)
 
-    def forward(self, q, kv, batch_mask, padding_mask=None, hidden_mask=None):
-        A,T,D = q.shape                                     # [L,N,E] : [A,T,D]
+    def forward(self, q_, kv, batch_mask, padding_mask=None, hidden_mask=None):
+        A,T,D = q_.shape                                     # [L,N,E] : [A,T,D]
         assert (T==self.time_steps and D==self.feature_dim)
         G,T,D = kv.shape                                    # [S,N,E] : [G,T,D]
         assert (T==self.time_steps and D==self.feature_dim)
@@ -169,8 +168,11 @@ class CrossAttLayer_Enc(nn.Module):
 
         k, v = kv, kv
         # att_output : [L,N,E] : [A,T,D]
-        att_output,_ = self.layer_att_(q,k,v,key_padding_mask=padding_mask,attn_mask=batch_mask)
-        S_ = att_output + q
+        att_output,_ = self.layer_att_(q_,k,v,key_padding_mask=padding_mask,attn_mask=batch_mask)
+        if torch.isnan(att_output.sum()):
+            import ipdb
+            ipdb.set_trace()
+        S_ = att_output + q_
         F1_ = self.layer_F1_(S_)
         #F2_ = self.layer_F2_(F1_)
         Z_ = self.layer_Z_(F1_)

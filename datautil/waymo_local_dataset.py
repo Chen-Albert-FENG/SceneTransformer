@@ -3,12 +3,12 @@ import os
 import uuid
 import time
 
-from matplotlib import cm
-import matplotlib.animation as animation
-import matplotlib.pyplot as plt
+#from matplotlib import cm
+#import matplotlib.animation as animation
+#import matplotlib.pyplot as plt
 
 import numpy as np
-import cv2
+#import cv2
 # from IPython.display import HTML
 import itertools
 import torch

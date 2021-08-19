@@ -71,7 +71,6 @@ class SceneTransformer(pl.LightningModule):
         Loss = nn.MSELoss(reduction='none')
         loss_ = Loss(gt.unsqueeze(1).repeat(1,6,1), prediction)
         loss_ = torch.min(torch.mean(torch.mean(loss_, dim=0),dim=-1))
-
         self.log_dict({'train_loss':loss_})
         return loss_
 
