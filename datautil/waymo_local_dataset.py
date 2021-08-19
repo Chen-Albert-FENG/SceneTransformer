@@ -14,13 +14,7 @@ import itertools
 import torch
 from tfrecord.torch.dataset import TFRecordDataset, MultiTFRecordDataset
 
-def waymo_local_collate_fn(batch, halfwidth=100, time_steps=91, GD=16, GS=1400): # GS = max number of static roadgraph element (1400), GD = max number of dynamic roadgraph (16)
-    past_states_batch = np.array([]).reshape(-1,10,9)
-    past_states_valid_batch = np.array([]).reshape(-1,10)
-    current_states_batch = np.array([]).reshape(-1,1,9)
-    current_states_valid_batch = np.array([]).reshape(-1,1)
-    future_states_batch = np.array([]).reshape(-1,80,9)
-    future_states_valid_batch = np.array([]).reshape(-1,80)
+def waymo_local_collate_fn(batch, halfwidth=100, time_steps=10, GD=16, GS=1400): # GS = max number of static roadgraph element (1400), GD = max number of dynamic roadgraph (16)
     states_batch = np.array([]).reshape(-1,time_steps,9)
 
     states_padding_mask_batch = np.array([]).reshape(-1,time_steps)
@@ -54,11 +48,15 @@ def waymo_local_collate_fn(batch, halfwidth=100, time_steps=91, GD=16, GS=1400):
         future_states_valid = data['state/future/valid'] > 0.
 
         sdc_mask = data['state/is_sdc'] > 0.
-        center_x, center_y = current_states[sdc_mask][0,0,:2]
         agent_types = data['state/type']
 
         states_feat = np.concatenate((past_states,current_states,future_states),axis=1)                             # [A,T,D]
         states_padding_mask = ~np.concatenate((past_states_valid,current_states_valid,future_states_valid), axis=1) # [A,T]
+
+        states_feat = states_feat[:,::5,:][:,:10,:]
+        states_padding_mask = states_padding_mask[:,::5][:,:10]
+
+        center_x, center_y = states_feat[sdc_mask][0,3,:2]
         
         # make global coordinate to local centered to sdv and normalize 
         # Also, pad features outside width. Also, update padding mask 
@@ -83,13 +81,13 @@ def waymo_local_collate_fn(batch, halfwidth=100, time_steps=91, GD=16, GS=1400):
 
         # basic_mask = np.zeros((len(states_feat),time_steps)).astype(np.bool_)
         states_hidden_mask_BP = np.ones((len(states_feat),time_steps)).astype(np.bool_)
-        states_hidden_mask_BP[:,:11] = False
+        states_hidden_mask_BP[:,:4] = False
         sdvidx = np.where(data['state/is_sdc'][states_any_mask][agent_type_mask] == 1)[0][0]
         states_hidden_mask_CBP = np.ones((len(states_feat),time_steps)).astype(np.bool_)
-        states_hidden_mask_CBP[:,:11] = False
+        states_hidden_mask_CBP[:,:4] = False
         states_hidden_mask_CBP[sdvidx,:] = False
         states_hidden_mask_GDP = np.ones((len(states_feat),time_steps)).astype(np.bool_)
-        states_hidden_mask_GDP[:,:11] = False
+        states_hidden_mask_GDP[:,:4] = False
         states_hidden_mask_GDP[sdvidx,-1] = False
         # states_hidden_mask_CDP = np.zeros((len(states_feat),time_steps)).astype(np.bool_)
         
@@ -133,6 +131,8 @@ def waymo_local_collate_fn(batch, halfwidth=100, time_steps=91, GD=16, GS=1400):
 
         traffic_light_feat = np.concatenate((traffic_light_states_past,traffic_light_states_current,traffic_light_states_future),axis=1)
         traffic_light_valid = np.concatenate((traffic_light_valid_past,traffic_light_valid_current,traffic_light_valid_future),axis=1)
+        traffic_light_feat = traffic_light_feat[:,::5,:][:,:10,:]
+        traffic_light_valid = traffic_light_valid[:,::5][:,:10]
         traffic_light_padding = ~traffic_light_valid
 
         traffic_light_feat[:,:,1:3] -= np.array([center_x,center_y])
@@ -148,13 +148,6 @@ def waymo_local_collate_fn(batch, halfwidth=100, time_steps=91, GD=16, GS=1400):
         num_tl = np.append(num_tl, traffic_light_feat.shape[0])
 
         # Concat across batch
-        past_states_batch = np.concatenate((past_states_batch, past_states), axis=0)
-        past_states_valid_batch = np.concatenate((past_states_valid_batch, past_states_valid), axis=0)
-        current_states_batch = np.concatenate((current_states_batch, current_states), axis=0)
-        current_states_valid_batch = np.concatenate((current_states_valid_batch, current_states_valid), axis=0)
-        future_states_batch = np.concatenate((future_states_batch, future_states), axis=0)
-        future_states_valid_batch = np.concatenate((future_states_valid_batch, future_states_valid), axis=0)
-
         states_batch = np.concatenate((states_batch,states_feat), axis=0)
         states_padding_mask_batch = np.concatenate((states_padding_mask_batch,states_padding_mask), axis=0)
 

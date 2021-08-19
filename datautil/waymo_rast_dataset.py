@@ -198,5 +198,15 @@ def waymo_raster_collate_fn(batch, GD=16, GS=1400): # GS = max number of static 
     for i in range(len(num_agents)):
         agents_batch_mask[num_agents_accum[i]:num_agents_accum[i+1], num_agents_accum[i]:num_agents_accum[i+1]] = 1
 
-    return (scene_img_batch, tgt_img_batch, agent_points_batch, states_feat_batch, agents_batch_mask,
-                states_padding_mask_batch, (states_hidden_mask_BP_batch,states_hidden_mask_CBP_batch,states_hidden_mask_GDP_batch))
+    sample = {
+            # 'sample_token': '',
+            # 'instance_token': '',
+            'num_agents': num_agents,
+            'tgt_key_padding_mask': agents_batch_mask[num_agents_accum[:-1]],
+            'src_maps': torch.FloatTensor(scene_img_batch.reshape(len(batch), -1, 500, 500)),  # torch.FloatTensor: [B, C, 500, 500]
+            'tgt_maps': torch.FloatTensor(tgt_img_batch),  # torch.FloatTensor: [[A1, A2, ...], 500, 500]
+            'agent_points': torch.FloatTensor(agent_points_batch),  # torch.FloatTensor: [[A1, A2, ...], 4]
+            'states_feat': torch.FloatTensor(states_feat_batch[:, 0, 2:7]),  # torch.FloatTensor: [[A1, A2, ...], 5]
+            'viz': 100.*torch.FloatTensor(scene_img_batch.reshape(len(batch), -1, 500, 500)).mean(1).unsqueeze(1).repeat(1,3,1,1) # # torch.FloatTensor: [B, 3, 500, 500]
+        }
+    return sample
