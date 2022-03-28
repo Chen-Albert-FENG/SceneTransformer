@@ -1,5 +1,5 @@
 # SceneTransformer-pytorch
-## This repo is unofficial pytorch implementation of SceneTransformer
+This repo is unofficial pytorch implementation of SceneTransformer
 ## 1. Install dependencies
 ```pip install -r requirements.txt```
 ## 2. Put tfrecord data file at ./data/tfrecords
