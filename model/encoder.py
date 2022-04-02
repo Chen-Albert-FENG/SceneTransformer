@@ -29,6 +29,7 @@ class Encoder(nn.Module):
         self.layer_C = nn.Sequential(nn.Linear(in_static_rg_dim,feature_dim), nn.ReLU(), Permute4Batchnorm((0,2,1)),
                             nn.BatchNorm1d(feature_dim), Permute4Batchnorm((0,2,1)))
         # layer D,E,F,G,H,I : input -> [A,T,D] / outpu -> [A,T,D]
+        # Here is 12 attention layers for 3*[selfatt_Time, selfatt_Agent] and 2*[crossatt_Env, selfatt_Time, selfatt_Agent].
         self.layer_D = SelfAttLayer(self.device, self.time_steps,self.feature_dim,self.head_num,self.k,across_time=True)
         self.layer_E = SelfAttLayer(self.device, self.time_steps,self.feature_dim,self.head_num,self.k,across_time=False)
         self.layer_F = SelfAttLayer(self.device, self.time_steps,self.feature_dim,self.head_num,self.k,across_time=True)
