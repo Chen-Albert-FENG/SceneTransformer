@@ -1,4 +1,4 @@
-# SceneTransformer-pytorch
+# SceneTransformer
 This repo is unofficial pytorch implementation of SceneTransformer
 ## 1. Install dependencies
 ```pip install -r requirements.txt```
